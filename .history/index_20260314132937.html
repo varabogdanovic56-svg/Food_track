@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FoodTracker - Твое здоровое питание</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loader" id="loader">
+        <div class="loader-content">
+            <div class="loader-logo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+            </div>
+            <div class="loader-text">Загрузка...</div>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+    </button>
+
+    <div class="app-container" id="appContainer">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo" data-page="diary">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="logo-text">FoodTracker</div>
+                        <div class="logo-subtitle">Твое питание</div>
+                    </div>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link active" data-page="diary">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                        </svg>
+                        <span>Дневник</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="recipes">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>
+                        </svg>
+                        <span>Рецепты</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="progress">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/>
+                        </svg>
+                        <span>Прогресс</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="water">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/>
+                        </svg>
+                        <span>Вода</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="activity">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/>
+                        </svg>
+                        <span>Активность</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="reminders">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+                        </svg>
+                        <span>Напоминания</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="recommendations">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
+                        </svg>
+                        <span>Рекомендации</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-page="chat">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                        <span>Чат</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- Diary Page -->
+            <div class="page active" id="page-diary">
+                <div class="page-header">
+                    <h1 class="page-title">Дневник питания</h1>
+                    <p class="page-subtitle">Отслеживайте калории и БЖУ каждый день</p>
+                </div>
+
+                <div class="date-selector">
+                    <button class="date-btn" id="prevDateBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <div class="date-display" id="currentDate"></div>
+                    <button class="date-btn" id="nextDateBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="stats-grid" id="dailyStats">
+                    <div class="stat-card">
+                        <div class="stat-icon calories">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="totalCalories">0</div>
+                        <div class="stat-label">ккал</div>
+                        <div class="stat-progress">
+                            <div class="stat-progress-bar" id="caloriesProgress" style="width: 0%; background: linear-gradient(90deg, #ef4444, #f87171);"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon protein">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="totalProtein">0</div>
+                        <div class="stat-label">белки (г)</div>
+                        <div class="stat-progress">
+                            <div class="stat-progress-bar" id="proteinProgress" style="width: 0%; background: linear-gradient(90deg, #6366f1, #818cf8);"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon carbs">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="totalCarbs">0</div>
+                        <div class="stat-label">углеводы (г)</div>
+                        <div class="stat-progress">
+                            <div class="stat-progress-bar" id="carbsProgress" style="width: 0%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon fat">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-value" id="totalFat">0</div>
+                        <div class="stat-label">жиры (г)</div>
+                        <div class="stat-progress">
+                            <div class="stat-progress-bar" id="fatProgress" style="width: 0%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="meals-grid" id="mealsGrid">
+                    <!-- Meals will be rendered here -->
+                </div>
+            </div>
+
+             <div class="page" id="products">
+                <div class="page-header">
+                    <h1 class="page-title">Продукты</h1>
+                    <p class="page-subtitle">Список всех продуктов</p>
+                </div>
+
+                <div class="recommendations-list" id="recommendationsList">
+                    <!-- Recommendations will be rendered here -->
+                </div>
+            </div>
+            <!-- Recipes Page -->
+            <div class="page" id="page-recipes">
+                <div class="page-header">
+                    <h1 class="page-title">База рецептов</h1>
+                    <p class="page-subtitle">Полезные рецепты для вашей диеты</p>
+                </div>
+
+                <div class="filter-section">
+                    <button class="filter-pill active" data-filter="all">Все</button>
+                    <button class="filter-pill" data-filter="keto">🥑 Кето</button>
+                    <button class="filter-pill" data-filter="vegan">🥗 Веган</button>
+                    <button class="filter-pill" data-filter="vegetarian">🥬 Вегетарианское</button>
+                    <button class="filter-pill" data-filter="glutenfree">🌾 Безглютен</button>
+                    <button class="filter-pill" data-filter="lowcarb">🍖 Низкоуглеводное</button>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="Поиск рецептов..." id="recipeSearch">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                </div>
+
+                <div class="recipes-grid" id="recipesGrid">
+                    <!-- Recipes will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Progress Page -->
+            <div class="page" id="page-progress">
+                <div class="page-header">
+                    <h1 class="page-title">Анализ прогресса</h1>
+                    <p class="page-subtitle">Отслеживайте свой прогресс во времени</p>
+                </div>
+
+                <div class="two-column">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Вес и мышечная масса</h3>
+                            <div class="chart-tabs">
+                                <button class="chart-tab active" data-period="30">30 дней</button>
+                                <button class="chart-tab" data-period="90">90 дней</button>
+                            </div>
+                        </div>
+                        <canvas id="weightChart"></canvas>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="card-title">📝 Записать вес</h3>
+                        <div class="weight-display">
+                            <span id="currentWeight">--</span>
+                            <span class="weight-unit">кг</span>
+                        </div>
+                        <div class="weight-input-group">
+                            <div class="form-group">
+                                <label class="form-label">Вес (кг)</label>
+                                <input type="number" class="form-input" id="weightInput" step="0.1" placeholder="Например: 75.5">
+                            </div>
+                            <button class="btn btn-primary" id="addWeightBtn">Записать</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container" style="margin-top: 28px;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Калории по дням</h3>
+                    </div>
+                    <canvas id="caloriesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Water Page -->
+            <div class="page" id="page-water">
+                <div class="page-header">
+                    <h1 class="page-title">Водный баланс</h1>
+                    <p class="page-subtitle">Следите за достаточным потреблением воды</p>
+                </div>
+
+                <div class="water-tracker">
+                    <div class="water-progress">
+                        <div class="water-circle" id="waterCircle">
+                            <div>
+                                <div class="water-amount" id="waterAmount">0</div>
+                                <span class="water-unit">мл</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="water-buttons">
+                        <button class="water-btn" data-water="150">+150 мл</button>
+                        <button class="water-btn" data-water="200">+200 мл</button>
+                        <button class="water-btn" data-water="250">+250 мл</button>
+                        <button class="water-btn" data-water="300">+300 мл</button>
+                        <button class="water-btn" data-water="500">+500 мл</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Page -->
+            <div class="page" id="page-activity">
+                <div class="page-header">
+                    <h1 class="page-title">Физическая активность</h1>
+                    <p class="page-subtitle">Учитывайте сожженные калории от тренировок</p>
+                </div>
+
+                <div class="activity-grid" id="activityGrid">
+                    <div class="activity-type-card" data-type="0">
+                        <div class="activity-icon">🚶</div>
+                        <div class="activity-name">Ходьба</div>
+                        <div class="activity-cal">~4 ккал/мин</div>
+                    </div>
+                    <div class="activity-type-card" data-type="1">
+                        <div class="activity-icon">🏃</div>
+                        <div class="activity-name">Бег</div>
+                        <div class="activity-cal">~10 ккал/мин</div>
+                    </div>
+                    <div class="activity-type-card" data-type="2">
+                        <div class="activity-icon">🚴</div>
+                        <div class="activity-name">Велосипед</div>
+                        <div class="activity-cal">~8 ккал/мин</div>
+                    </div>
+                    <div class="activity-type-card" data-type="3">
+                        <div class="activity-icon">🏊</div>
+                        <div class="activity-name">Плавание</div>
+                        <div class="activity-cal">~9 ккал/мин</div>
+                    </div>
+                    <div class="activity-type-card" data-type="4">
+                        <div class="activity-icon">🏋️</div>
+                        <div class="activity-name">Силовая</div>
+                        <div class="activity-cal">~6 ккал/мин</div>
+                    </div>
+                    <div class="activity-type-card" data-type="5">
+                        <div class="activity-icon">🧘</div>
+                        <div class="activity-name">Йога</div>
+                        <div class="activity-cal">~3 ккал/мин</div>
+                    </div>
+                </div>
+
+                <div class="card" id="activityForm" style="display: none;">
+                    <h3 class="card-title">Добавить активность</h3>
+                    <div class="two-column">
+                        <div class="form-group">
+                            <label class="form-label">Длительность (минуты)</label>
+                            <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Дата</label>
+                            <input type="date" class="form-input" id="activityDate">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="addActivityBtn">Добавить</button>
+                </div>
+            </div>
+
+            <!-- Reminders Page -->
+            <div class="page" id="page-reminders">
+                <div class="page-header">
+                    <h1 class="page-title">Напоминания</h1>
+                    <p class="page-subtitle">Настройте уведомления о приемах пищи</p>
+                </div>
+
+                <div class="reminders-grid" id="remindersGrid">
+                    <div class="reminder-card">
+                        <div class="reminder-info">
+                            <div class="reminder-time">08:00</div>
+                            <div>
+                                <div class="reminder-type">Завтрак</div>
+                                <div class="reminder-subtitle">Ежедневно</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="reminder-card">
+                        <div class="reminder-info">
+                            <div class="reminder-time">13:00</div>
+                            <div>
+                                <div class="reminder-type">Обед</div>
+                                <div class="reminder-subtitle">Ежедневно</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="reminder-card">
+                        <div class="reminder-info">
+                            <div class="reminder-time">19:00</div>
+                            <div>
+                                <div class="reminder-type">Ужин</div>
+                                <div class="reminder-subtitle">Ежедневно</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="reminder-card">
+                        <div class="reminder-info">
+                            <div class="reminder-time">Каждые 2ч</div>
+                            <div>
+                                <div class="reminder-type">Вода</div>
+                                <div class="reminder-subtitle">Напоминание</div>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" style="margin-top: 28px;" id="addReminderBtn">+ Добавить напоминание</button>
+            </div>
+
+            <!-- Recommendations Page -->
+            <div class="page" id="page-recommendations">
+                <div class="page-header">
+                    <h1 class="page-title">Рекомендации</h1>
+                    <p class="page-subtitle">Персональные советы по питанию</p>
+                </div>
+
+                <div class="recommendations-list" id="recommendationsList">
+                    <!-- Recommendations will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Chat Page -->
+            <div class="page" id="page-chat">
+                <div class="page-header">
+                    <h1 class="page-title">Чат с диетологом</h1>
+                    <p class="page-subtitle">Получите персональную консультацию</p>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-list">
+                        <div class="chat-list-header">Доступные диетологи</div>
+                        <div class="dietitian-list" id="dietitiansList">
+                            <!-- Dietitians will be rendered here -->
+                        </div>
+                    </div>
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <div class="dietitian-avatar">АС</div>
+                            <div>
+                                <h4>Доктор Анна Смирнова</h4>
+                                <div class="dietitian-status">
+                                    <span class="status-dot"></span>
+                                    Онлайн
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message dietitian">
+                                Здравствуйте! Я рада видеть вас в чате. Чем могу помочь?
+                                <div class="message-time">10:00</div>
+                            </div>
+                        </div>
+                        <div class="chat-input">
+                            <input type="text" placeholder="Введите сообщение..." id="chatInput">
+                            <button id="sendMessageBtn">Отправить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Food Modal -->
+    <div class="modal-overlay" id="foodModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalMealTitle">Добавить в завтрак</h2>
+                <button class="modal-close" id="closeModalBtn">×</button>
+            </div>
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="Поиск продуктов..." id="productSearch">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+            </div>
+            <div class="product-list" id="productList">
+                <!-- Products will be loaded here -->
+            </div>
+            <div id="selectedProduct" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <strong id="selectedProductName">Название продукта</strong>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Количество (грамм)</label>
+                    <input type="number" class="form-input" id="productGrams" value="100">
+                </div>
+                <div class="nutrition-grid">
+                    <div><strong id="productCalories">0</strong><small>ккал</small></div>
+                    <div><strong id="productProtein">0</strong><small>белок</small></div>
+                    <div><strong id="productCarbs">0</strong><small>угл</small></div>
+                    <div><strong id="productFat">0</strong><small>жир</small></div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" id="addFoodBtn">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
