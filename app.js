@@ -1074,36 +1074,6 @@ function addProductDetailToMeal() {
     closeProductDetailModal();
     alert('"' + selectedProductDetail.name + '" добавлен в дневник');
 }
-    const mealType = 0;
-    if (!meals[mealType]) meals[mealType] = [];
-    
-    const entry = {
-        productId: Date.now(),
-        productName: name,
-        grams: grams,
-        calories: calories,
-        protein: protein,
-        carbs: carbs,
-        fat: fat
-    };
-    
-    meals[mealType].push(entry);
-    dailyData.calories += calories;
-    dailyData.protein += protein;
-    dailyData.carbs += carbs;
-    dailyData.fat += fat;
-    
-    updateStats();
-    renderMeals();
-    alert('"' + name + '" добавлен в завтрак');
-}
-
-// Initialize products page on load
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        renderProductsPage(allFoods);
-    }, 100);
-});
 
 // Charts
 function initCharts() {
@@ -1231,18 +1201,12 @@ function renderRecommendations(recs) {
 }
 
 // Chat
-async function loadDietitians() {
-    try {
-        const response = await fetch(`${API_BASE}/Chat/dietitians`);
-        const dietitians = await response.json();
-        renderDietitians(dietitians);
-    } catch (e) {
-        const demoDietitians = [
-            { id: 1, name: 'Доктор Анна Смирнова', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500 },
-            { id: 2, name: 'Михаил Петров', specialization: 'Спортивное питание', rating: 4.8, consultationPrice: 2000 }
-        ];
-        renderDietitians(demoDietitians);
-    }
+function loadDietitians() {
+    const demoDietitians = [
+        { id: 1, name: 'Доктор Анна Смирнова', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500 },
+        { id: 2, name: 'Михаил Петров', specialization: 'Спортивное питание', rating: 4.8, consultationPrice: 2000 }
+    ];
+    renderDietitians(demoDietitians);
 }
 
 function renderDietitians(dietitians) {
@@ -1264,7 +1228,7 @@ function selectDietitian(id) {
     loadChatMessages();
 }
 
-async function loadChatMessages() {
+function loadChatMessages() {
     const messages = document.getElementById('chatMessages');
     messages.innerHTML = `
         <div class="message dietitian">
@@ -1272,26 +1236,6 @@ async function loadChatMessages() {
             <div class="message-time">${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
         </div>
     `;
-    
-    try {
-        const response = await fetch(`${API_BASE}/Chat/messages?userId=1&dietitianId=${selectedDietitianId}`);
-        const messagesData = await response.json();
-        
-        if (messagesData && messagesData.length > 0) {
-            messages.innerHTML = '';
-            messagesData.forEach(m => {
-                const time = new Date(m.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                messages.innerHTML += `
-                    <div class="message ${m.isFromUser ? 'user' : 'dietitian'}">
-                        ${m.content}
-                        <div class="message-time">${time}</div>
-                    </div>
-                `;
-            });
-        }
-    } catch (e) {
-        console.log('No previous messages');
-    }
 }
 
 function handleChatKeyPress(e) {
@@ -1339,10 +1283,21 @@ async function sendMessage() {
             `;
         }
     } catch (e) {
-        console.error('Chat error:', e);
+        // Fallback responses if backend is not available
+        const lowerMsg = message.toLowerCase();
+        let response = "Спасибо за ваш вопрос! Я могу помочь с:\n\n🥑 Кето-диетой\n🥗 Веганским питанием\n📉 Программой похудения\n💪 Набором массы\n\nПросто напишите, что вас интересует!";
+        
+        if (lowerMsg.includes("кето")) {
+            response = "🥑 **КЕТО-ДИЕТА**\n\nОсновные принципы:\n- 70-75% жиров\n- 20-25% белка\n- 5-10% углеводов\n\nРекомендую начать с:\n- Завтрак: Омлет с авокадо\n- Обед: Курица с овощами\n- Ужин: Рыба с салатом\n\nХотите подробное меню на неделю?";
+        } else if (lowerMsg.includes("веган") || lowerMsg.includes("вегетариан")) {
+            response = "🥗 **ВЕГАНСКОЕ ПИТАНИЕ**\n\nИсточники белка:\n- Бобовые (нут, чечевица, фасоль)\n- Тофу и темпе\n- Квиноа\n- Орехи и семена\n\nВажно: добавьте B12!\n\nХотите рецепты?";
+        } else if (lowerMsg.includes("похуд") || lowerMsg.includes("сниж")) {
+            response = "📉 **ДЛЯ ПОХУДЕНИЯ**\n\nОсновные правила:\n- Дефицит калорий 300-500 ккал\n- 1.6-2.2 г белка на кг веса\n- Сложные углеводы\n- Много овощей\n\nХотите меню?";
+        }
+        
         messages.innerHTML += `
             <div class="message dietitian">
-                Извините, произошла ошибка. Попробуйте ещё раз.
+                ${response}
                 <div class="message-time">${time}</div>
             </div>
         `;
