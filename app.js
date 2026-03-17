@@ -3,6 +3,7 @@ let currentDate = new Date();
 let currentMealType = 0;
 let currentMealId = null;
 let selectedProduct = null;
+let selectedRecipeDetail = null;
 let userGoals = { calories: 2000, protein: 100, carbs: 250, fat: 65, water: 2000 };
 let dailyData = { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 };
 let meals = { 0: [], 1: [], 2: [], 3: [] };
@@ -14,6 +15,110 @@ let weightChart = null;
 let caloriesChart = null;
 
 const API_BASE = 'http://localhost:5001/api';
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠'
+    };
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type]}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Recipe Detail Modal
+function openRecipeDetailModal(recipeId) {
+    const recipe = recipes.find(r => r.id === recipeId);
+    if (!recipe) return;
+    
+    selectedRecipeDetail = recipe;
+    const nutrition = recipe.totalNutrition || {};
+    
+    document.getElementById('recipeDetailName').textContent = recipe.name;
+    document.getElementById('recipeDetailTime').textContent = (recipe.prepTimeMinutes + recipe.cookTimeMinutes) + ' мин';
+    document.getElementById('recipeDetailServings').textContent = recipe.servings + ' порц.';
+    document.getElementById('recipeDetailCuisine').textContent = recipe.cuisine || '-';
+    document.getElementById('recipeDetailCalories').textContent = Math.round(nutrition.calories || 0);
+    document.getElementById('recipeDetailProtein').textContent = Math.round(nutrition.protein || 0);
+    document.getElementById('recipeDetailCarbs').textContent = Math.round(nutrition.carbs || 0);
+    document.getElementById('recipeDetailFat').textContent = Math.round(nutrition.fat || 0);
+    document.getElementById('recipeDetailInstructions').textContent = recipe.instructions || 'Нет инструкции';
+    
+    // Tags
+    const dietLabels = { 1: 'Кето', 2: 'Веган', 4: 'Вегетарианское', 8: 'Безглютен', 32: 'Низкоуглеводное' };
+    const tags = Object.entries(dietLabels)
+        .filter(([k, v]) => (recipe.dietTypes & parseInt(k)) === parseInt(k))
+        .map(([k, v]) => `<span class="recipe-detail-tag">${v}</span>`)
+        .join('');
+    document.getElementById('recipeDetailTags').innerHTML = tags;
+    
+    // Ingredients
+    if (recipe.ingredients) {
+        const ingredientList = recipe.ingredients.split(',').map(i => i.trim());
+        document.getElementById('recipeDetailIngredients').innerHTML = ingredientList.map(i => 
+            `<div class="recipe-detail-ingredient">• ${i}</div>`
+        ).join('');
+    } else {
+        document.getElementById('recipeDetailIngredients').innerHTML = '<div>Нет данных об ингредиентах</div>';
+    }
+    
+    // Image
+    const header = document.getElementById('recipeDetailHeader');
+    header.style.background = 'linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%)';
+    
+    document.getElementById('recipeDetailModal').classList.add('active');
+}
+
+function closeRecipeDetailModal() {
+    document.getElementById('recipeDetailModal').classList.remove('active');
+    selectedRecipeDetail = null;
+}
+
+function addRecipeDetailToMeal() {
+    if (!selectedRecipeDetail) return;
+    
+    const nutrition = selectedRecipeDetail.totalNutrition || {};
+    const servings = selectedRecipeDetail.servings || 1;
+    
+    const entry = {
+        productId: selectedRecipeDetail.id,
+        productName: selectedRecipeDetail.name,
+        grams: 100 * servings,
+        calories: (nutrition.calories || 0) * servings,
+        protein: (nutrition.protein || 0) * servings,
+        carbs: (nutrition.carbs || 0) * servings,
+        fat: (nutrition.fat || 0) * servings
+    };
+    
+    const mealType = currentMealType || 0;
+    if (!meals[mealType]) meals[mealType] = [];
+    meals[mealType].push(entry);
+    
+    dailyData.calories += entry.calories;
+    dailyData.protein += entry.protein;
+    dailyData.carbs += entry.carbs;
+    dailyData.fat += entry.fat;
+    
+    updateStats();
+    renderMeals();
+    closeRecipeDetailModal();
+    showToast(`"${selectedRecipeDetail.name}" добавлен в дневник`);
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,11 +143,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('nextDateBtn').addEventListener('click', () => changeDate(1));
     
     // Navigation links
-    document.querySelectorAll('.nav-link, .logo').forEach(el => {
+    document.querySelectorAll('.nav-link').forEach(el => {
         el.addEventListener('click', (e) => {
             const page = e.currentTarget.dataset.page;
             if (page) showPage(page);
         });
+    });
+    
+    // Logo - refresh current page data
+    document.querySelector('.logo').addEventListener('click', (e) => {
+        e.preventDefault();
+        loadDailyData();
+        loadRecipes();
+        loadRecommendations();
+        loadDietitians();
+        loadChatMessages();
+        updateStats();
+        renderMeals();
     });
     
     // Filter pills
@@ -99,8 +216,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Product Detail Modal
     document.getElementById('closeProductDetailBtn').addEventListener('click', closeProductDetailModal);
-    document.getElementById('productDetailGrams').addEventListener('input', updateProductDetailNutrition);
     document.getElementById('addProductDetailBtn').addEventListener('click', addProductDetailToMeal);
+    
+    // Recipe Detail Modal
+    document.getElementById('closeRecipeDetailBtn').addEventListener('click', closeRecipeDetailModal);
+    document.getElementById('addRecipeDetailBtn').addEventListener('click', addRecipeDetailToMeal);
+});
+
+// Global event delegation for dynamic elements
+document.addEventListener('input', function(e) {
+    if (e.target.id === 'productDetailGrams') {
+        updateProductDetailNutrition();
+    }
 });
 
 // Navigation
@@ -861,20 +988,10 @@ function renderRecipes(recipesToRender) {
         const protein = nutrition.protein || r.totalProtein || 0;
         const carbs = nutrition.carbs || r.totalCarbs || 0;
         const fat = nutrition.fat || r.totalFat || 0;
-        const imageUrl = r.imageUrl || '';
         
         return `
         <div class="recipe-card" onclick="addRecipeToMeal(${r.id})">
-            <div class="recipe-image" style="${imageUrl ? `background-image: url(${imageUrl}); background-size: cover; background-position: center;` : ''}">
-                ${!imageUrl ? `
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>
-                </svg>
-                ` : ''}
-                <div class="recipe-tags">
-                    ${Object.entries(dietLabels).filter(([k, v]) => (r.dietTypes & parseInt(k)) === parseInt(k)).map(([k, v]) => `<span class="recipe-tag">${v}</span>`).join('')}
-                </div>
-            </div>
+            <div class="recipe-image-placeholder"></div>
             <div class="recipe-content">
                 <h3 class="recipe-name">${r.name}</h3>
                 <div class="recipe-info">
@@ -898,6 +1015,9 @@ function renderRecipes(recipesToRender) {
                         <div class="nutrition-value">${Math.round(fat)}</div>
                         <div class="nutrition-label">жир</div>
                     </div>
+                </div>
+                <div class="recipe-tags">
+                    ${Object.entries(dietLabels).filter(([k, v]) => (r.dietTypes & parseInt(k)) === parseInt(k)).map(([k, v]) => `<span class="recipe-tag">${v}</span>`).join('')}
                 </div>
             </div>
         </div>
@@ -926,31 +1046,7 @@ function searchRecipes() {
 }
 
 function addRecipeToMeal(recipeId) {
-    const recipe = recipes.find(r => r.id === recipeId);
-    if (!recipe) return;
-    
-    const mealType = currentMealType || 0;
-    if (!meals[mealType]) meals[mealType] = [];
-    
-    const entry = {
-        productId: recipe.id,
-        productName: recipe.name,
-        grams: recipe.servings * 100,
-        calories: recipe.totalCalories,
-        protein: recipe.totalProtein,
-        carbs: recipe.totalCarbs,
-        fat: recipe.totalFat
-    };
-    
-    meals[mealType].push(entry);
-    dailyData.calories += entry.calories;
-    dailyData.protein += entry.protein;
-    dailyData.carbs += entry.carbs;
-    dailyData.fat += entry.fat;
-    
-    updateStats();
-    renderMeals();
-    alert('Рецепт добавлен в ' + ['завтрак', 'обед', 'ужин', 'перекус'][mealType]);
+    openRecipeDetailModal(recipeId);
 }
 
 // Products Page
@@ -968,6 +1064,7 @@ function renderProductsPage(productsToRender) {
         
         return `
         <div class="product-card" onclick="addProductToMeal('${name}', ${calories}, ${protein}, ${carbs}, ${fat}, 100)">
+            <div class="product-image-placeholder"></div>
             <div class="product-card-header">
                 <span class="product-category">${category}</span>
             </div>
@@ -1027,6 +1124,12 @@ function openProductDetailModal(name, calories, protein, carbs, fat, category) {
     document.getElementById('productDetailGrams').value = 100;
     document.getElementById('totalGrams').textContent = 100;
     document.getElementById('totalCalories').textContent = calories;
+    document.getElementById('totalProtein').textContent = protein;
+    document.getElementById('totalCarbs').textContent = carbs;
+    document.getElementById('totalFat').textContent = fat;
+    
+    const detailImg = document.getElementById('productDetailImage');
+    detailImg.style.display = 'none';
     
     document.getElementById('productDetailModal').classList.add('active');
 }
@@ -1037,11 +1140,18 @@ function closeProductDetailModal() {
 
 function updateProductDetailNutrition() {
     if (!selectedProductDetail) return;
-    const grams = parseFloat(document.getElementById('productDetailGrams').value) || 100;
+    
+    const gramsInput = document.getElementById('productDetailGrams');
+    if (!gramsInput) return;
+    
+    const grams = parseFloat(gramsInput.value) || 100;
     const ratio = grams / 100;
     
     document.getElementById('totalGrams').textContent = grams;
     document.getElementById('totalCalories').textContent = Math.round(selectedProductDetail.calories * ratio);
+    document.getElementById('totalProtein').textContent = Math.round(selectedProductDetail.protein * ratio);
+    document.getElementById('totalCarbs').textContent = Math.round(selectedProductDetail.carbs * ratio);
+    document.getElementById('totalFat').textContent = Math.round(selectedProductDetail.fat * ratio);
 }
 
 function addProductDetailToMeal() {
@@ -1072,7 +1182,7 @@ function addProductDetailToMeal() {
     updateStats();
     renderMeals();
     closeProductDetailModal();
-    alert('"' + selectedProductDetail.name + '" добавлен в дневник');
+    showToast('"' + selectedProductDetail.name + '" добавлен в дневник');
 }
 
 // Charts
@@ -1169,7 +1279,7 @@ function addActivity() {
     const caloriesPerMin = [4, 10, 8, 9, 6, 3][selectedActivityType];
     const burned = Math.round(duration * caloriesPerMin);
     
-    alert(`Добавлена активность: ${duration} минут, сожжено ~${burned} ккал`);
+    showToast(`Добавлена активность: ${duration} минут, сожжено ~${burned} ккал`);
     document.getElementById('activityDuration').value = '';
 }
 
@@ -1261,47 +1371,262 @@ async function sendMessage() {
     sendBtn.disabled = true;
     sendBtn.textContent = '...';
     
-    try {
-        const response = await fetch(`${API_BASE}/Chat/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: 1,
-                dietitianId: selectedDietitianId,
-                message: message
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.assistantMessage) {
-            messages.innerHTML += `
-                <div class="message dietitian">
-                    ${result.assistantMessage.content}
-                    <div class="message-time">${time}</div>
-                </div>
-            `;
-        }
-    } catch (e) {
-        // Fallback responses if backend is not available
-        const lowerMsg = message.toLowerCase();
-        let response = "Спасибо за ваш вопрос! Я могу помочь с:\n\n🥑 Кето-диетой\n🥗 Веганским питанием\n📉 Программой похудения\n💪 Набором массы\n\nПросто напишите, что вас интересует!";
-        
-        if (lowerMsg.includes("кето")) {
-            response = "🥑 **КЕТО-ДИЕТА**\n\nОсновные принципы:\n- 70-75% жиров\n- 20-25% белка\n- 5-10% углеводов\n\nРекомендую начать с:\n- Завтрак: Омлет с авокадо\n- Обед: Курица с овощами\n- Ужин: Рыба с салатом\n\nХотите подробное меню на неделю?";
-        } else if (lowerMsg.includes("веган") || lowerMsg.includes("вегетариан")) {
-            response = "🥗 **ВЕГАНСКОЕ ПИТАНИЕ**\n\nИсточники белка:\n- Бобовые (нут, чечевица, фасоль)\n- Тофу и темпе\n- Квиноа\n- Орехи и семена\n\nВажно: добавьте B12!\n\nХотите рецепты?";
-        } else if (lowerMsg.includes("похуд") || lowerMsg.includes("сниж")) {
-            response = "📉 **ДЛЯ ПОХУДЕНИЯ**\n\nОсновные правила:\n- Дефицит калорий 300-500 ккал\n- 1.6-2.2 г белка на кг веса\n- Сложные углеводы\n- Много овощей\n\nХотите меню?";
-        }
-        
-        messages.innerHTML += `
-            <div class="message dietitian">
-                ${response}
-                <div class="message-time">${time}</div>
-            </div>
-        `;
+    // Local AI responses (works without backend)
+    const lowerMsg = message.toLowerCase();
+    let response = "";
+    
+    // Кето диета
+    if (lowerMsg.includes("кето") || lowerMsg.includes("keto")) {
+        response = `🥑 **КЕТО-ДИЕТА** 
+
+Основные принципы:
+• 70-75% жиров
+• 20-25% белка  
+• 5-10% углеводов (не более 20-50г в день)
+
+Рекомендуемые продукты:
+• Авокадо, яйца, жирная рыба
+• Сыр, сливочное масло, сливки
+• Мясо, птица без кожи
+• Овощи: брокколи, шпинат, цветная капуста
+
+Пример меню на день:
+Завтрак: Омлет с авокадо (420 ккал)
+Обед: Куриная грудка с овощами (350 ккал)  
+Ужин: Лосось с салатом (400 ккал)
+
+Хотите подробное меню на неделю?`;
     }
+    // Веган
+    else if (lowerMsg.includes("веган") || lowerMsg.includes("vegan") || lowerMsg.includes("вегетариан")) {
+        response = `🥗 **ВЕГАНСКОЕ ПИТАНИЕ**
+
+Источники белка:
+• Бобовые: нут, чечевица, фасоль (20-30г на порцию)
+• Тофу, темпе (15-20г на 100г)
+• Квиноа (8г на 100г)
+• Орехи и семена (15-20г на 30г)
+
+Важные добавки:
+• B12 - обязательно!
+• Омега-3 (льняное семя)
+• Витамин D
+
+Хотите рецепты веганских блюд?`;
+    }
+    // Похудение
+    else if (lowerMsg.includes("похуд") || lowerMsg.includes("сниж") || lowerMsg.includes("диет") || lowerMsg.includes("сбросить") || lowerMsg.includes("лишний")) {
+        response = `📉 **ПРОГРАММА ПОХУДЕНИЯ**
+
+Расчет калорий:
+• Ваша суточная норма - 2000 ккал (примерно)
+• Для похудения: 1500-1700 ккал/день
+• Дефицит: 300-500 ккал
+
+Белок: 1.6-2.2 г на кг веса
+Углеводы: сложные, утром и днем
+Жиры: полезные, не более 30%
+
+План питания:
+• Завтрак: каша + фрукты (400 ккал)
+• Обед: белок + овощи (500 ккал)
+• Ужин: белок + овощи (400 ккал)
+• Перекусы: орехи, йогурт (200 ккал)
+
+Сколько вы весите? Составлю персональный план!`;
+    }
+    // Набор массы
+    else if (lowerMsg.includes("набор") || lowerMsg.includes("масс") || lowerMsg.includes("мышц") || lowerMsg.includes("спорт")) {
+        response = `💪 **НАБОР МАССЫ**
+
+Суточная норма: 2500-3000 ккал
+Белок: 1.8-2.5 г на кг веса
+Углеводы: 4-6 г на кг веса
+
+Распределение:
+• Завтрак: углеводы + белок (600 ккал)
+• Обед: углеводы + белок (800 ккал)
+• Ужин: белок + овощи (500 ккал)
+• До/после тренировки: углеводы + белок
+
+Продукты для набора:
+• Курица, говядина, лосось
+• Рис, гречка, овсянка
+• Творог, яйца, сыр
+• Бананы, орехи
+
+Сколько вы весите?`;
+    }
+    // Белок
+    else if (lowerMsg.includes("белок") || lowerMsg.includes("протеин") || lowerMsg.includes("ам")) {
+        response = `💪 **БЕЛОК**
+
+Суточная норма:
+• Для обычных людей: 0.8-1 г на кг
+• Для спортсменов: 1.5-2.5 г на кг
+• При похудении: до 2 г на кг
+
+Лучшие источники белка:
+• Куриная грудка: 31г/100г
+• Говядина: 26г/100г  
+• Рыба: 20-25г/100г
+• Творог: 17г/100г
+• Яйца: 13г/2 шт
+• Нут, чечевица: 8-10г/100г
+
+Избыток белка = нагрузка на почки!`;
+    }
+    // Углеводы
+    else if (lowerMsg.includes("углевод") || lowerMsg.includes("угл") || lowerMsg.includes("глик")) {
+        response = `🍚 **УГЛЕВОДЫ**
+
+Виды углеводов:
+• Простые (быстрые): сахар, мед, фрукты - дают энергию быстро
+• Сложные (медленные): крупы, овощи, хлеб - дают энергию долго
+
+Гликемический индекс (ГИ):
+• Низкий ГИ (до 55): овощи, крупы, бобовые
+• Средний ГИ (56-69): рис, макароны
+• Высокий ГИ (70+): сахар, белый хлеб
+
+Для похудения: сложные углеводы до 14:00`;
+    }
+    // Жиры
+    else if (lowerMsg.includes("жир") || lowerMsg.includes("липид") || lowerMsg.includes("омега")) {
+        response = `🥑 **ЖИРЫ**
+
+Норма: 25-30% от калорий
+
+Полезные жиры:
+• Омега-3: рыба, льняное семя, грецкие орехи
+• Омега-9: оливковое масло, авокадо
+• Мононенасыщенные: орехи, семена
+
+Вредные жиры:
+• Трансжиры: маргарин, фастфуд
+• Насыщенные: жирное мясо, масло (в меру)
+
+Холестерин: не более 300мг/день`;
+    }
+    // Калории
+    else if (lowerMsg.includes("калорий") || lowerMsg.includes("ккал") || lowerMsg.includes("кало")) {
+        response = `🔥 **КАЛОРИИ**
+
+Как рассчитать свою норму:
+Базовый метаболизм (БМР) по формуле:
+• Женщины: 10 × вес(кг) + 6.25 × рост(см) - 5 × возраст - 161
+• Мужчины: 10 × вес(кг) + 6.25 × рост(см) - 5 × возраст + 5
+
+Коэффициент активности:
+• 1.2 - сидячий образ жизни
+• 1.375 - легкие тренировки 1-3 раза
+• 1.55 - тренировки 3-5 раз
+• 1.725 - интенсивные тренировки
+
+Пример для вас: 2000 ккал/день`;
+    }
+    // Вода
+    else if (lowerMsg.includes("вод") || lowerMsg.includes("пить") || lowerMsg.includes("гидрат")) {
+        response = `💧 **ВОДА**
+
+Норма: 30-40 мл на кг веса
+При весе 70кг: 2.1-2.8 литра в день
+
+Когда пить:
+• Утром натощак: 1 стакан
+• За 30 мин до еды
+• После тренировки
+• Не перед сном
+
+Признаки обезвоживания:
+• Жажда, сухость во рту
+• Темная моча
+• Головная боль
+• Усталость`;
+    }
+    // Здоровое питание
+    else if (lowerMsg.includes("здор") || lowerMsg.includes("правиль") || lowerMsg.includes("пита")) {
+        response = `🥗 **ЗДОРОВОЕ ПИТАНИЕ**
+
+Основные принципы:
+1. Разнообразие - ешьте разные продукты
+2. Овощи и фрукты - 5 порций в день
+3. Белок - в каждом приеме пищи
+4. Полезные жиры - оливковое масло, рыба
+5. Ограничьте сахар и соль
+6. Пейте достаточно воды
+
+Правило тарелки:
+• 50% - овощи
+• 25% - белок
+• 25% - гарнир
+
+Что интересует конкретно?`;
+    }
+    // Приветствие
+    else if (lowerMsg.includes("привет") || lowerMsg.includes("здравств") || lowerMsg.includes("hi") || lowerMsg.includes("hello")) {
+        response = `Привет! 👋
+
+Я ваш персональный диетолог! Могу помочь с:
+
+🥑 Кето-диетой
+🥗 Веганским питанием
+📉 Похудением
+💪 Набором массы
+💧 Водным балансом
+📊 Подсчетом калорий
+
+Просто напишите, что вас интересует!`;
+    }
+    // Спасибо
+    else if (lowerMsg.includes("спасибо") || lowerMsg.includes("благодар")) {
+        response = `Пожалуйста! 😊
+
+Если будут ещё вопросы - обращайтесь!
+Могу помочь с:
+• Планом питания
+• Рецептами
+• Расчетом калорий
+• Ответами на вопросы о питании
+
+Какой следующий вопрос?`;
+    }
+    // Помощь
+    else if (lowerMsg.includes("помощ") || lowerMsg.includes("что ты умеешь") || lowerMsg.includes("команд")) {
+        response = `Я могу помочь с:
+
+🥑 Кето-диета - меню, рецепты, продукты
+🥗 Веганское питание - белок, рецепты
+📉 Похудение - дефицит калорий, план
+💪 Набор массы - профицит, белок
+💧 Вода - норма, питьевой режим
+📊 Калории - расчет, БМР
+💊 Витамины и добавки
+🏃 Спорт и питание
+
+Просто спросите!`;
+    }
+    // По умолчанию
+    else {
+        response = `Я получила ваше сообщение: "${message}"
+
+Могу помочь с:
+• 🥑 Кето-диетой
+• 🥗 Веганским питанием  
+• 📉 Программой похудения
+• 💪 Набором мышечной массы
+• 💧 Водным балансом
+• 📊 Подсчетом калорий и БЖУ
+
+Просто напишите, что вас интересует!`;
+    }
+    
+    messages.innerHTML += `
+        <div class="message dietitian">
+            ${response}
+            <div class="message-time">${time}</div>
+        </div>
+    `;
     
     sendBtn.disabled = false;
     sendBtn.textContent = 'Отправить';
@@ -1315,10 +1640,10 @@ async function addWeightRecord() {
     if (!weight) return;
     
     document.getElementById('currentWeight').textContent = weight;
-    alert('Вес записан: ' + weight + ' кг');
+    showToast('Вес записан: ' + weight + ' кг');
 }
 
 // Reminder modal
 function openReminderModal() {
-    alert('Функция добавления напоминаний скоро будет доступна!');
+    showToast('Функция добавления напоминаний скоро будет доступна!');
 }

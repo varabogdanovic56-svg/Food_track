@@ -217,12 +217,12 @@
 
                 <div class="filter-section">
                     <button class="filter-pill active" data-category="all">Все</button>
-                    <button class="filter-pill" data-category="Мясо">🥩 Мясо</button>
-                    <button class="filter-pill" data-category="Рыба">🐟 Рыба</button>
-                    <button class="filter-pill" data-category="Молочное">🥛 Молочное</button>
-                    <button class="filter-pill" data-category="Крупы">🌾 Крупы</button>
-                    <button class="filter-pill" data-category="Овощи">🥬 Овощи</button>
-                    <button class="filter-pill" data-category="Блюда">🍽 Блюда</button>
+                    <button class="filter-pill" data-category="Мясо">Мясо</button>
+                    <button class="filter-pill" data-category="Рыба">Рыба</button>
+                    <button class="filter-pill" data-category="Молочное">Молочное</button>
+                    <button class="filter-pill" data-category="Крупы">Крупы</button>
+                    <button class="filter-pill" data-category="Овощи">Овощи</button>
+                    <button class="filter-pill" data-category="Блюда">Блюда</button>
                 </div>
 
                 <div class="products-grid" id="productsGrid">
@@ -239,11 +239,11 @@
 
                 <div class="filter-section">
                     <button class="filter-pill active" data-filter="all">Все</button>
-                    <button class="filter-pill" data-filter="keto">🥑 Кето</button>
-                    <button class="filter-pill" data-filter="vegan">🥗 Веган</button>
-                    <button class="filter-pill" data-filter="vegetarian">🥬 Вегетарианское</button>
-                    <button class="filter-pill" data-filter="glutenfree">🌾 Безглютен</button>
-                    <button class="filter-pill" data-filter="lowcarb">🍖 Низкоуглеводное</button>
+                    <button class="filter-pill" data-filter="keto">Кето</button>
+                    <button class="filter-pill" data-filter="vegan">Веган</button>
+                    <button class="filter-pill" data-filter="vegetarian">Вегетарианское</button>
+                    <button class="filter-pill" data-filter="glutenfree">Безглютен</button>
+                    <button class="filter-pill" data-filter="lowcarb">Низкоуглеводное</button>
                 </div>
 
                 <div class="search-box">
@@ -545,8 +545,11 @@
                 <h2 class="modal-title" id="productDetailName">Название продукта</h2>
                 <button class="modal-close" id="closeProductDetailBtn">×</button>
             </div>
-            <div class="product-detail-image" id="productDetailImage"></div>
+            <div class="product-detail-image" id="productDetailImage">
+                <div class="product-detail-icon" id="productDetailIcon"></div>
+            </div>
             <div class="product-detail-category" id="productDetailCategory">Категория</div>
+            <div class="nutrition-per-100">На 100г:</div>
             <div class="product-detail-nutrition">
                 <div class="nutrition-box">
                     <div class="nutrition-value" id="productDetailCalories">0</div>
@@ -570,13 +573,98 @@
                 <input type="number" class="form-input" id="productDetailGrams" value="100">
             </div>
             <div class="product-nutrition-total" id="productNutritionTotal">
-                <span>На <span id="totalGrams">100</span>г: </span>
-                <strong><span id="totalCalories">0</span> ккал</strong>
+                <div class="total-nutrition-row">
+                    <span>Итого за <span id="totalGrams">100</span>г:</span>
+                </div>
+                <div class="total-nutrition-values">
+                    <strong><span id="totalCalories">0</span> ккал</strong>
+                    <span>Б: <span id="totalProtein">0</span>г</span>
+                    <span>У: <span id="totalCarbs">0</span>г</span>
+                    <span>Ж: <span id="totalFat">0</span>г</span>
+                </div>
             </div>
             <button class="btn btn-primary" style="width: 100%;" id="addProductDetailBtn">Добавить в дневник</button>
         </div>
     </div>
 
+    <!-- Recipe Detail Modal -->
+    <div class="modal-overlay recipe-detail-modal" id="recipeDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="recipeDetailName">Название рецепта</h2>
+                <button class="modal-close" id="closeRecipeDetailBtn">×</button>
+            </div>
+            <div class="recipe-detail-header" id="recipeDetailHeader">
+                <div class="recipe-detail-header-overlay">
+                    <div class="recipe-detail-tags" id="recipeDetailTags"></div>
+                </div>
+            </div>
+            <div class="recipe-detail-info">
+                <div class="recipe-detail-info-item">
+                    <span>⏱️</span>
+                    <span id="recipeDetailTime">0 мин</span>
+                </div>
+                <div class="recipe-detail-info-item">
+                    <span>🍽️</span>
+                    <span id="recipeDetailServings">1 порц.</span>
+                </div>
+                <div class="recipe-detail-info-item">
+                    <span>🌍</span>
+                    <span id="recipeDetailCuisine">-</span>
+                </div>
+            </div>
+            <div class="recipe-detail-section">
+                <div class="recipe-detail-section-title">КБЖУ на порцию</div>
+                <div class="recipe-detail-nutrition">
+                    <div class="recipe-detail-nutrition-box">
+                        <div class="recipe-detail-nutrition-value" id="recipeDetailCalories">0</div>
+                        <div class="recipe-detail-nutrition-label">ккал</div>
+                    </div>
+                    <div class="recipe-detail-nutrition-box">
+                        <div class="recipe-detail-nutrition-value" id="recipeDetailProtein">0</div>
+                        <div class="recipe-detail-nutrition-label">белки</div>
+                    </div>
+                    <div class="recipe-detail-nutrition-box">
+                        <div class="recipe-detail-nutrition-value" id="recipeDetailCarbs">0</div>
+                        <div class="recipe-detail-nutrition-label">углеводы</div>
+                    </div>
+                    <div class="recipe-detail-nutrition-box">
+                        <div class="recipe-detail-nutrition-value" id="recipeDetailFat">0</div>
+                        <div class="recipe-detail-nutrition-label">жиры</div>
+                    </div>
+                </div>
+            </div>
+            <div class="recipe-detail-section">
+                <div class="recipe-detail-section-title">Ингредиенты</div>
+                <div class="recipe-detail-ingredients" id="recipeDetailIngredients"></div>
+            </div>
+            <div class="recipe-detail-section">
+                <div class="recipe-detail-section-title">Приготовление</div>
+                <div class="recipe-detail-instructions" id="recipeDetailInstructions"></div>
+            </div>
+            <button class="btn btn-primary recipe-detail-add-btn" id="addRecipeDetailBtn">Добавить в дневник</button>
+        </div>
+    </div>
+
+    <script src="img/images.js"></script>
     <script src="app.js"></script>
+    
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
+    
+    <script>
+        const scrollTopBtn = document.getElementById('scrollTopBtn');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > window.innerHeight / 2) {
+                scrollTopBtn.style.display = 'flex';
+            } else {
+                scrollTopBtn.style.display = 'none';
+            }
+        });
+        scrollTopBtn.style.display = 'none';
+    </script>
 </body>
 </html>
