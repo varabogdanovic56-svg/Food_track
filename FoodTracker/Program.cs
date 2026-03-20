@@ -1,5 +1,8 @@
 using FoodTracker.Data;
 using FoodTracker.Services;
+using dotenv.net;
+
+DotEnv.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 

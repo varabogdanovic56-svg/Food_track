@@ -1,8 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "A/D61C3hnJk=",
+  "dgSpecHash": "MuvfV0fk7oY=",
   "success": true,
-  "projectFilePath": "/Users/misa/Desktop/варя помощь/food_tracker/FoodTracker/FoodTracker.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\Варя\\OneDrive\\Desktop\\food_tracker\\FoodTracker\\FoodTracker.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Варя\\.nuget\\packages\\dotenv.net\\3.0.0\\dotenv.net.3.0.0.nupkg.sha512",
+    "C:\\Users\\Варя\\.nuget\\packages\\system.memory\\4.5.4\\system.memory.4.5.4.nupkg.sha512",
+    "C:\\Users\\Варя\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\7.0.20\\microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\Варя\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\7.0.20\\microsoft.netcore.app.host.win-x64.7.0.20.nupkg.sha512",
+    "C:\\Users\\Варя\\.nuget\\packages\\microsoft.netcore.app.ref\\7.0.20\\microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\Варя\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\7.0.20\\microsoft.windowsdesktop.app.ref.7.0.20.nupkg.sha512"
+  ],
   "logs": []
 }

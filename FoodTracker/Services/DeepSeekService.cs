@@ -8,7 +8,7 @@ public class DeepSeekService
 {
     private readonly HttpClient _httpClient;
     private const string ApiUrl = "https://openrouter.ai/api/v1/chat/completions";
-    private const string ApiKey = "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";
+    private static readonly string ApiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY") ?? throw new InvalidOperationException("OPENROUTER_API_KEY environment variable is not set");
 
     private const string SystemPrompt = @"Ты - Доктор Анна Дипсиковна, опытный диетолог и нутрициолог с 15-летним стажем работы. 
 
