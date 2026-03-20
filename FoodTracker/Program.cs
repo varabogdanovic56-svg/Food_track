@@ -15,6 +15,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSingleton<FoodTrackerDbContext>();
 builder.Services.AddHttpClient<TheMealDbService>();
+builder.Services.AddHttpClient<DeepSeekService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();

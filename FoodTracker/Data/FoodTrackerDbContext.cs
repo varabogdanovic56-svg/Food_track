@@ -193,7 +193,7 @@ public class FoodTrackerDbContext
 
         Dietitians = new List<Dietitian>
         {
-            new Dietitian { Id = 1, Name = "Доктор Анна Смирнова", Specialization = "Диетология, нутрициология", Rating = 4.9, ConsultationPrice = 1500, IsOnline = true },
+            new Dietitian { Id = 1, Name = "Доктор Анна Дипсиковна", Specialization = "Диетология, нутрициология", Rating = 4.9, ConsultationPrice = 1500, IsOnline = true },
             new Dietitian { Id = 2, Name = "Михаил Петров", Specialization = "Спортивное питание", Rating = 4.8, ConsultationPrice = 2000, IsOnline = false },
             new Dietitian { Id = 3, Name = "Елена Козлова", Specialization = "Веганское питание", Rating = 4.7, ConsultationPrice = 1800, IsOnline = true }
         };

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using FoodTracker.Data;
 using FoodTracker.Models;
+using FoodTracker.Services;
 
 namespace FoodTracker.Controllers;
 
@@ -9,10 +10,12 @@ namespace FoodTracker.Controllers;
 public class ChatController : ControllerBase
 {
     private readonly FoodTrackerDbContext _context;
+    private readonly DeepSeekService? _deepSeekService;
 
-    public ChatController(FoodTrackerDbContext context)
+    public ChatController(FoodTrackerDbContext context, DeepSeekService? deepSeekService = null)
     {
         _context = context;
+        _deepSeekService = deepSeekService;
     }
 
     [HttpGet("dietitians")]
@@ -75,6 +78,24 @@ public class ChatController : ControllerBase
         });
     }
 
+    [HttpPost("ai")]
+    public async Task<IActionResult> SendAiMessage([FromBody] ChatRequest request)
+    {
+        try
+        {
+            if (_deepSeekService != null)
+            {
+                var response = await _deepSeekService.SendMessageAsync(request.Message);
+                return Ok(new { response });
+            }
+            return Ok(new { response = GenerateSmartResponse(request.Message) });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     private string GenerateSmartResponse(string message)
     {
         var lowerMessage = message.ToLower();
@@ -116,7 +137,7 @@ public class ChatController : ControllerBase
 
         if (lowerMessage.Contains("привет") || lowerMessage.Contains("здравст"))
         {
-            return "Здравствуйте! Я - доктор Анна Смирнова, ваш персональный диетолог. Рада помочь вам с составлением плана питания!\n\nВы можете попросить меня составить:\n🥑 Кето-диету\n🥗 Веганское меню\n📉 Диету для похудения\n💪 Программу для набора массы\n🏃 Питание для спортсменов\n\nКакой план питания вас интересует?";
+            return "Здравствуйте! Я - Доктор Анна Дипсиковна, ваш персональный диетолог. Рада помочь вам с составлением плана питания!\n\nВы можете попросить меня составить:\n🥑 Кето-диету\n🥗 Веганское меню\n📉 Диету для похудения\n💪 Программу для набора массы\n🏃 Питание для спортсменов\n\nКакой план питания вас интересует?";
         }
 
         if (lowerMessage.Contains("калорий") || lowerMessage.Contains("сколько"))

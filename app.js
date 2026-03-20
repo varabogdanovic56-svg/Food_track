@@ -1757,7 +1757,7 @@ function renderRecommendations(recs) {
 // Chat
 function loadDietitians() {
     const demoDietitians = [
-        { id: 1, name: 'Доктор Анна Смирнова', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500 },
+        { id: 1, name: 'Доктор Анна Дипсиковна', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500 },
         { id: 2, name: 'Михаил Петров', specialization: 'Спортивное питание', rating: 4.8, consultationPrice: 2000 }
     ];
     renderDietitians(demoDietitians);
@@ -1840,10 +1840,11 @@ async function sendMessage() {
             </div>
         `;
     } catch (error) {
+        console.error('Chat error:', error);
         document.getElementById('typingIndicator')?.remove();
         messages.innerHTML += `
             <div class="message dietitian">
-                Извините, произошла ошибка. Попробуйте ещё раз.
+                Извините, произошла ошибка: ${error.message}. Попробуйте ещё раз.
                 <div class="message-time">${time}</div>
             </div>
         `;
@@ -1859,7 +1860,7 @@ function getUserContextForAI() {
     let context = {};
     
     // Получаем данные за сегодня
-    const today = getTodayKey();
+    const today = new Date().toISOString().split('T')[0];
     const todayData = JSON.parse(localStorage.getItem('foodTracker_' + today)) || {};
     
     const totalCalories = todayData.calories || 0;
@@ -1880,318 +1881,41 @@ function getUserContextForAI() {
 }
 
 async function sendToOpenRouter(message, context) {
-    const API_KEY = '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';
+    const url = `${API_BASE}/chat/ai`;
+    console.log('Calling:', url);
     
-    const systemPrompt = `Ты - опытный диетолог и нутрициолог. Твоя задача - помогать пользователю с правильным питанием.
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                userId: 1,
+                dietitianId: selectedDietitianId || 1
+            })
+        });
 
-Правила:
-1. Давай конкретные, практические советы по питанию
-2. Будь дружелюбным и мотивирующим
-3. Отвечай на русском языке
-4. Используй эмодзи для наглядности
-5. Если нужно - предлагай конкретные продукты или рецепты из базы
-6. Всегда учитывай данные пользователя
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            throw new Error(errorText || 'Ошибка сервера: ' + response.status);
+        }
 
-Данные пользователя СЕГОДНЯ:
-- Съедено: ${context.todayCalories} ккал (Б: ${context.todayProtein}г, У: ${context.todayCarbs}г, Ж: ${context.todayFat}г)
-- Цель: ${context.goalCalories} ккал/день
-
-Если пользователь съел мало - предложи перекус или полноценный приём пищи.
-Если перебрал - предложи лёгкий ужин или объясни, как скорректировать.
-`;
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.href,
-            'X-Title': 'FoodTracker'
-        },
-        body: JSON.stringify({
-            model: 'meta-llama/llama-3.2-11b-vision-instruct',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: message }
-            ],
-            max_tokens: 500
-        })
-    });
-
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
-        throw new Error('API request failed: ' + response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+        return data.response;
+    } catch (err) {
+        console.error('Chat API error:', err);
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            throw new Error('Не удалось连接到 серверу. Проверь что бэкенд запущен на ' + API_BASE);
+        }
+        throw err;
     }
-
-    const data = await response.json();
-    console.log('Response data:', data);
-    
-    return data.choices[0].message.content;
 }
-    let response = "";
-    
-    // Кето диета
-    if (lowerMsg.includes("кето") || lowerMsg.includes("keto")) {
-        response = `🥑 **КЕТО-ДИЕТА** 
-
-Основные принципы:
-• 70-75% жиров
-• 20-25% белка  
-• 5-10% углеводов (не более 20-50г в день)
-
-Рекомендуемые продукты:
-• Авокадо, яйца, жирная рыба
-• Сыр, сливочное масло, сливки
-• Мясо, птица без кожи
-• Овощи: брокколи, шпинат, цветная капуста
-
-Пример меню на день:
-Завтрак: Омлет с авокадо (420 ккал)
-Обед: Куриная грудка с овощами (350 ккал)  
-Ужин: Лосось с салатом (400 ккал)
-
-Хотите подробное меню на неделю?`;
-    }
-    // Веган
-    else if (lowerMsg.includes("веган") || lowerMsg.includes("vegan") || lowerMsg.includes("вегетариан")) {
-        response = `🥗 **ВЕГАНСКОЕ ПИТАНИЕ**
-
-Источники белка:
-• Бобовые: нут, чечевица, фасоль (20-30г на порцию)
-• Тофу, темпе (15-20г на 100г)
-• Квиноа (8г на 100г)
-• Орехи и семена (15-20г на 30г)
-
-Важные добавки:
-• B12 - обязательно!
-• Омега-3 (льняное семя)
-• Витамин D
-
-Хотите рецепты веганских блюд?`;
-    }
-    // Похудение
-    else if (lowerMsg.includes("похуд") || lowerMsg.includes("сниж") || lowerMsg.includes("диет") || lowerMsg.includes("сбросить") || lowerMsg.includes("лишний")) {
-        response = `📉 **ПРОГРАММА ПОХУДЕНИЯ**
-
-Расчет калорий:
-• Ваша суточная норма - 2000 ккал (примерно)
-• Для похудения: 1500-1700 ккал/день
-• Дефицит: 300-500 ккал
-
-Белок: 1.6-2.2 г на кг веса
-Углеводы: сложные, утром и днем
-Жиры: полезные, не более 30%
-
-План питания:
-• Завтрак: каша + фрукты (400 ккал)
-• Обед: белок + овощи (500 ккал)
-• Ужин: белок + овощи (400 ккал)
-• Перекусы: орехи, йогурт (200 ккал)
-
-Сколько вы весите? Составлю персональный план!`;
-    }
-    // Набор массы
-    else if (lowerMsg.includes("набор") || lowerMsg.includes("масс") || lowerMsg.includes("мышц") || lowerMsg.includes("спорт")) {
-        response = `💪 **НАБОР МАССЫ**
-
-Суточная норма: 2500-3000 ккал
-Белок: 1.8-2.5 г на кг веса
-Углеводы: 4-6 г на кг веса
-
-Распределение:
-• Завтрак: углеводы + белок (600 ккал)
-• Обед: углеводы + белок (800 ккал)
-• Ужин: белок + овощи (500 ккал)
-• До/после тренировки: углеводы + белок
-
-Продукты для набора:
-• Курица, говядина, лосось
-• Рис, гречка, овсянка
-• Творог, яйца, сыр
-• Бананы, орехи
-
-Сколько вы весите?`;
-    }
-    // Белок
-    else if (lowerMsg.includes("белок") || lowerMsg.includes("протеин") || lowerMsg.includes("ам")) {
-        response = `💪 **БЕЛОК**
-
-Суточная норма:
-• Для обычных людей: 0.8-1 г на кг
-• Для спортсменов: 1.5-2.5 г на кг
-• При похудении: до 2 г на кг
-
-Лучшие источники белка:
-• Куриная грудка: 31г/100г
-• Говядина: 26г/100г  
-• Рыба: 20-25г/100г
-• Творог: 17г/100г
-• Яйца: 13г/2 шт
-• Нут, чечевица: 8-10г/100г
-
-Избыток белка = нагрузка на почки!`;
-    }
-    // Углеводы
-    else if (lowerMsg.includes("углевод") || lowerMsg.includes("угл") || lowerMsg.includes("глик")) {
-        response = `🍚 **УГЛЕВОДЫ**
-
-Виды углеводов:
-• Простые (быстрые): сахар, мед, фрукты - дают энергию быстро
-• Сложные (медленные): крупы, овощи, хлеб - дают энергию долго
-
-Гликемический индекс (ГИ):
-• Низкий ГИ (до 55): овощи, крупы, бобовые
-• Средний ГИ (56-69): рис, макароны
-• Высокий ГИ (70+): сахар, белый хлеб
-
-Для похудения: сложные углеводы до 14:00`;
-    }
-    // Жиры
-    else if (lowerMsg.includes("жир") || lowerMsg.includes("липид") || lowerMsg.includes("омега")) {
-        response = `🥑 **ЖИРЫ**
-
-Норма: 25-30% от калорий
-
-Полезные жиры:
-• Омега-3: рыба, льняное семя, грецкие орехи
-• Омега-9: оливковое масло, авокадо
-• Мононенасыщенные: орехи, семена
-
-Вредные жиры:
-• Трансжиры: маргарин, фастфуд
-• Насыщенные: жирное мясо, масло (в меру)
-
-Холестерин: не более 300мг/день`;
-    }
-    // Калории
-    else if (lowerMsg.includes("калорий") || lowerMsg.includes("ккал") || lowerMsg.includes("кало")) {
-        response = `🔥 **КАЛОРИИ**
-
-Как рассчитать свою норму:
-Базовый метаболизм (БМР) по формуле:
-• Женщины: 10 × вес(кг) + 6.25 × рост(см) - 5 × возраст - 161
-• Мужчины: 10 × вес(кг) + 6.25 × рост(см) - 5 × возраст + 5
-
-Коэффициент активности:
-• 1.2 - сидячий образ жизни
-• 1.375 - легкие тренировки 1-3 раза
-• 1.55 - тренировки 3-5 раз
-• 1.725 - интенсивные тренировки
-
-Пример для вас: 2000 ккал/день`;
-    }
-    // Вода
-    else if (lowerMsg.includes("вод") || lowerMsg.includes("пить") || lowerMsg.includes("гидрат")) {
-        response = `💧 **ВОДА**
-
-Норма: 30-40 мл на кг веса
-При весе 70кг: 2.1-2.8 литра в день
-
-Когда пить:
-• Утром натощак: 1 стакан
-• За 30 мин до еды
-• После тренировки
-• Не перед сном
-
-Признаки обезвоживания:
-• Жажда, сухость во рту
-• Темная моча
-• Головная боль
-• Усталость`;
-    }
-    // Здоровое питание
-    else if (lowerMsg.includes("здор") || lowerMsg.includes("правиль") || lowerMsg.includes("пита")) {
-        response = `🥗 **ЗДОРОВОЕ ПИТАНИЕ**
-
-Основные принципы:
-1. Разнообразие - ешьте разные продукты
-2. Овощи и фрукты - 5 порций в день
-3. Белок - в каждом приеме пищи
-4. Полезные жиры - оливковое масло, рыба
-5. Ограничьте сахар и соль
-6. Пейте достаточно воды
-
-Правило тарелки:
-• 50% - овощи
-• 25% - белок
-• 25% - гарнир
-
-Что интересует конкретно?`;
-    }
-    // Приветствие
-    else if (lowerMsg.includes("привет") || lowerMsg.includes("здравств") || lowerMsg.includes("hi") || lowerMsg.includes("hello")) {
-        response = `Привет! 👋
-
-Я ваш персональный диетолог! Могу помочь с:
-
-🥑 Кето-диетой
-🥗 Веганским питанием
-📉 Похудением
-💪 Набором массы
-💧 Водным балансом
-📊 Подсчетом калорий
-
-Просто напишите, что вас интересует!`;
-    }
-    // Спасибо
-    else if (lowerMsg.includes("спасибо") || lowerMsg.includes("благодар")) {
-        response = `Пожалуйста! 😊
-
-Если будут ещё вопросы - обращайтесь!
-Могу помочь с:
-• Планом питания
-• Рецептами
-• Расчетом калорий
-• Ответами на вопросы о питании
-
-Какой следующий вопрос?`;
-    }
-    // Помощь
-    else if (lowerMsg.includes("помощ") || lowerMsg.includes("что ты умеешь") || lowerMsg.includes("команд")) {
-        response = `Я могу помочь с:
-
-🥑 Кето-диета - меню, рецепты, продукты
-🥗 Веганское питание - белок, рецепты
-📉 Похудение - дефицит калорий, план
-💪 Набор массы - профицит, белок
-💧 Вода - норма, питьевой режим
-📊 Калории - расчет, БМР
-💊 Витамины и добавки
-🏃 Спорт и питание
-
-Просто спросите!`;
-    }
-    // По умолчанию
-    else {
-        response = `Я получила ваше сообщение: "${message}"
-
-Могу помочь с:
-• 🥑 Кето-диетой
-• 🥗 Веганским питанием  
-• 📉 Программой похудения
-• 💪 Набором мышечной массы
-• 💧 Водным балансом
-• 📊 Подсчетом калорий и БЖУ
-
-Просто напишите, что вас интересует!`;
-    }
-    
-    messages.innerHTML += `
-        <div class="message dietitian">
-            ${response}
-            <div class="message-time">${time}</div>
-        </div>
-    `;
-    
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Отправить';
-    input.value = '';
-    messages.scrollTop = messages.scrollHeight;
-
-
 
 // Weight
 async function addWeightRecord() {
