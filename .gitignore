@@ -3,3 +3,10 @@
 .history
 **/.history/
 **/.history
+
+# Environment variables
+.env
+
+# Build outputs
+bin/
+obj/
