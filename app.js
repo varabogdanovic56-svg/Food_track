@@ -140,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDailyData();
     loadRecipes();
     loadRecommendations();
-    loadDietitians();
     loadChatMessages();
     initCharts();
     document.getElementById('activityDate').valueAsDate = new Date();
@@ -164,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDailyData();
         loadRecipes();
         loadRecommendations();
-        loadDietitians();
         loadChatMessages();
         updateStats();
         renderMeals();
@@ -508,11 +506,32 @@ function renderProducts(products) {
 }
 
 function selectProduct(product) {
-    selectedProduct = product;
-    document.getElementById('selectedProduct').style.display = 'block';
-    document.getElementById('selectedProductName').textContent = product.name;
-    document.getElementById('productGrams').value = product.defaultGrams || 100;
-    updateProductNutrition();
+    selectedProductDetail = product;
+    
+    const name = product.name || product.Name || 'Без названия';
+    const calories = product.caloriesPer100g || product.CaloriesPer100g || 0;
+    const protein = product.proteinPer100g || product.ProteinPer100g || 0;
+    const carbs = product.carbsPer100g || product.CarbsPer100g || 0;
+    const fat = product.fatPer100g || product.FatPer100g || 0;
+    const category = product.category || product.Category || '';
+    
+    document.getElementById('productDetailName').textContent = name;
+    document.getElementById('productDetailCategory').textContent = category;
+    document.getElementById('productDetailCalories').textContent = calories;
+    document.getElementById('productDetailProtein').textContent = protein;
+    document.getElementById('productDetailCarbs').textContent = carbs;
+    document.getElementById('productDetailFat').textContent = fat;
+    document.getElementById('productDetailGrams').value = 100;
+    document.getElementById('totalGrams').textContent = 100;
+    document.getElementById('totalCalories').textContent = calories;
+    document.getElementById('totalProtein').textContent = protein;
+    document.getElementById('totalCarbs').textContent = carbs;
+    document.getElementById('totalFat').textContent = fat;
+    
+    const detailImg = document.getElementById('productDetailImage');
+    detailImg.style.display = 'none';
+    
+    document.getElementById('productDetailModal').classList.add('active');
 }
 
 function updateProductNutrition() {
@@ -1505,9 +1524,10 @@ function renderProductsPage(productsToRender) {
         const carbs = p.carbsPer100g || p.CarbsPer100g || 0;
         const fat = p.fatPer100g || p.FatPer100g || 0;
         const category = p.category || p.Category || '';
+        const productJson = JSON.stringify(p).replace(/'/g, "\\'");
         
         return `
-        <div class="product-card" onclick="addProductToMeal('${name}', ${calories}, ${protein}, ${carbs}, ${fat}, 100)">
+        <div class="product-card" onclick='selectProduct(${productJson})'>
             <div class="product-image-placeholder"></div>
             <div class="product-card-header">
                 <span class="product-category">${category}</span>
@@ -1534,6 +1554,28 @@ function renderProductsPage(productsToRender) {
     }).join('');
 }
 
+function openProductDetailModal(name, calories, protein, carbs, fat, category) {
+    selectedProductDetail = { name, calories, protein, carbs, fat, category };
+    
+    document.getElementById('productDetailName').textContent = name;
+    document.getElementById('productDetailCategory').textContent = category;
+    document.getElementById('productDetailCalories').textContent = calories;
+    document.getElementById('productDetailProtein').textContent = protein;
+    document.getElementById('productDetailCarbs').textContent = carbs;
+    document.getElementById('productDetailFat').textContent = fat;
+    document.getElementById('productDetailGrams').value = 100;
+    document.getElementById('totalGrams').textContent = 100;
+    document.getElementById('totalCalories').textContent = calories;
+    document.getElementById('totalProtein').textContent = protein;
+    document.getElementById('totalCarbs').textContent = carbs;
+    document.getElementById('totalFat').textContent = fat;
+    
+    const detailImg = document.getElementById('productDetailImage');
+    if (detailImg) detailImg.style.display = 'none';
+    
+    document.getElementById('productDetailModal').classList.add('active');
+}
+
 function filterProducts(category, btn) {
     document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
@@ -1555,28 +1597,6 @@ function searchProductsPage() {
 }
 
 let selectedProductDetail = null;
-
-function openProductDetailModal(name, calories, protein, carbs, fat, category) {
-    selectedProductDetail = { name, calories, protein, carbs, fat, category };
-    
-    document.getElementById('productDetailName').textContent = name;
-    document.getElementById('productDetailCategory').textContent = category;
-    document.getElementById('productDetailCalories').textContent = calories;
-    document.getElementById('productDetailProtein').textContent = protein;
-    document.getElementById('productDetailCarbs').textContent = carbs;
-    document.getElementById('productDetailFat').textContent = fat;
-    document.getElementById('productDetailGrams').value = 100;
-    document.getElementById('totalGrams').textContent = 100;
-    document.getElementById('totalCalories').textContent = calories;
-    document.getElementById('totalProtein').textContent = protein;
-    document.getElementById('totalCarbs').textContent = carbs;
-    document.getElementById('totalFat').textContent = fat;
-    
-    const detailImg = document.getElementById('productDetailImage');
-    detailImg.style.display = 'none';
-    
-    document.getElementById('productDetailModal').classList.add('active');
-}
 
 function closeProductDetailModal() {
     document.getElementById('productDetailModal').classList.remove('active');
@@ -1757,8 +1777,7 @@ function renderRecommendations(recs) {
 // Chat
 function loadDietitians() {
     const demoDietitians = [
-        { id: 1, name: 'Доктор Анна Дипсиковна', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500 },
-        { id: 2, name: 'Михаил Петров', specialization: 'Спортивное питание', rating: 4.8, consultationPrice: 2000 }
+        { id: 1, name: 'Доктор Анна Дипсиковна', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500, avatar: 'https://cdn-icons-png.flaticon.com/512/219/219983.png' }
     ];
     renderDietitians(demoDietitians);
 }
@@ -1766,7 +1785,9 @@ function loadDietitians() {
 function renderDietitians(dietitians) {
     document.getElementById('dietitiansList').innerHTML = dietitians.map(d => `
         <div class="dietitian-item" onclick="selectDietitian(${d.id})">
-            <div class="dietitian-avatar">${d.name.split(' ').map(n => n[0]).join('')}</div>
+            <div class="dietitian-avatar">
+                <img src="${d.avatar}" alt="${d.name}" />
+            </div>
             <div class="dietitian-info">
                 <h4>${d.name}</h4>
                 <p>${d.specialization}</p>
@@ -1785,9 +1806,14 @@ function selectDietitian(id) {
 function loadChatMessages() {
     const messages = document.getElementById('chatMessages');
     messages.innerHTML = `
-        <div class="message dietitian">
-            Здравствуйте! Я рада видеть вас в чате. Чем могу помочь?
-            <div class="message-time">${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="message-wrapper">
+            <div class="message-avatar">
+                <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+            </div>
+            <div class="message dietitian">
+                Здравствуйте! Я рада видеть вас в чате. Чем могу помочь?
+                <div class="message-time">${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
         </div>
     `;
 }
@@ -1817,9 +1843,14 @@ async function sendMessage() {
     
     // Индикатор "печатает"
     messages.innerHTML += `
-        <div class="message dietitian" id="typingIndicator">
-            <span class="typing-dots">Печатает<span>.</span><span>.</span><span>.</span></span>
-            <div class="message-time">${time}</div>
+        <div class="message-wrapper" id="typingIndicator">
+            <div class="message-avatar">
+                <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+            </div>
+            <div class="message dietitian">
+                <span class="typing-dots">Печатает<span>.</span><span>.</span><span>.</span></span>
+                <div class="message-time">${time}</div>
+            </div>
         </div>
     `;
     messages.scrollTop = messages.scrollHeight;
@@ -1834,18 +1865,28 @@ async function sendMessage() {
         document.getElementById('typingIndicator')?.remove();
         
         messages.innerHTML += `
-            <div class="message dietitian">
-                ${response}
-                <div class="message-time">${time}</div>
+            <div class="message-wrapper">
+                <div class="message-avatar">
+                    <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+                </div>
+                <div class="message dietitian">
+                    ${response}
+                    <div class="message-time">${time}</div>
+                </div>
             </div>
         `;
     } catch (error) {
         console.error('Chat error:', error);
         document.getElementById('typingIndicator')?.remove();
         messages.innerHTML += `
-            <div class="message dietitian">
-                Извините, произошла ошибка: ${error.message}. Попробуйте ещё раз.
-                <div class="message-time">${time}</div>
+            <div class="message-wrapper">
+                <div class="message-avatar">
+                    <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+                </div>
+                <div class="message dietitian">
+                    Извините, произошла ошибка: ${error.message}. Попробуйте ещё раз.
+                    <div class="message-time">${time}</div>
+                </div>
             </div>
         `;
     }

@@ -112,7 +112,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-page="chat">
+                    <a class="nav-link" data-page="chat" onclick="showPage('chat'); return false;">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
                         </svg>
@@ -469,15 +469,11 @@
                 </div>
 
                 <div class="chat-container">
-                    <div class="chat-list">
-                        <div class="chat-list-header">Доступные диетологи</div>
-                        <div class="dietitian-list" id="dietitiansList">
-                            <!-- Dietitians will be rendered here -->
-                        </div>
-                    </div>
                     <div class="chat-window">
                         <div class="chat-header">
-                            <div class="dietitian-avatar">АС</div>
+                            <div class="dietitian-avatar" style="background: linear-gradient(135deg, #e91e63, #9c27b0); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;">
+                                АД
+                            </div>
                             <div>
                                 <h4>Доктор Анна Дипсиковна</h4>
                                 <div class="dietitian-status">
@@ -487,10 +483,6 @@
                             </div>
                         </div>
                         <div class="chat-messages" id="chatMessages">
-                            <div class="message dietitian">
-                                Здравствуйте! Я рада видеть вас в чате. Чем могу помочь?
-                                <div class="message-time">10:00</div>
-                            </div>
                         </div>
                         <div class="chat-input">
                             <input type="text" placeholder="Введите сообщение..." id="chatInput">
