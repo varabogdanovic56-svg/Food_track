@@ -6,6 +6,9 @@ DotEnv.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+var apiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY") ?? throw new Exception("API key not found");
+Console.WriteLine($"Loaded API key: {apiKey.Substring(0, 20)}...");
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
