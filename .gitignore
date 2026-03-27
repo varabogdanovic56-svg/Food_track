@@ -6,7 +6,3 @@
 
 # Environment variables
 .env
-
-# Build outputs
-bin/
-obj/

@@ -1777,7 +1777,7 @@ function renderRecommendations(recs) {
 // Chat
 function loadDietitians() {
     const demoDietitians = [
-        { id: 1, name: 'Доктор Анна Дипсиковна', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500, avatar: 'https://cdn-icons-png.flaticon.com/512/219/219983.png' }
+        { id: 1, name: 'Доктор Анна Дипсиковна', specialization: 'Диетология, нутрициология', rating: 4.9, consultationPrice: 1500, avatar: 'img/anna_deepseekovna.jpg' }
     ];
     renderDietitians(demoDietitians);
 }
@@ -1808,7 +1808,7 @@ function loadChatMessages() {
     messages.innerHTML = `
         <div class="message-wrapper">
             <div class="message-avatar">
-                <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+                <img src="img/anna_deepseekovna.jpg" alt="Доктор" />
             </div>
             <div class="message dietitian">
                 Здравствуйте! Я рада видеть вас в чате. Чем могу помочь?
@@ -1845,7 +1845,7 @@ async function sendMessage() {
     messages.innerHTML += `
         <div class="message-wrapper" id="typingIndicator">
             <div class="message-avatar">
-                <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+                <img src="img/anna_deepseekovna.jpg" alt="Доктор" />
             </div>
             <div class="message dietitian">
                 <span class="typing-dots">Печатает<span>.</span><span>.</span><span>.</span></span>
@@ -1867,7 +1867,7 @@ async function sendMessage() {
         messages.innerHTML += `
             <div class="message-wrapper">
                 <div class="message-avatar">
-                    <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+                    <img src="img/anna_deepseekovna.jpg" alt="Доктор" />
                 </div>
                 <div class="message dietitian">
                     ${response}
@@ -1881,7 +1881,7 @@ async function sendMessage() {
         messages.innerHTML += `
             <div class="message-wrapper">
                 <div class="message-avatar">
-                    <img src="https://cdn-icons-png.flaticon.com/512/219/219983.png" alt="Доктор" />
+                    <img src="img/anna_deepseekovna.jpg" alt="Доктор" />
                 </div>
                 <div class="message dietitian">
                     Извините, произошла ошибка: ${error.message}. Попробуйте ещё раз.
