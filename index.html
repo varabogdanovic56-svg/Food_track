@@ -269,7 +269,7 @@
                 <div class="two-column">
                     <div class="chart-container">
                         <div class="chart-header">
-                            <h3 class="chart-title">Вес и мышечная масса</h3>
+                            <h3 class="chart-title">Динамика веса</h3>
                             <div class="chart-tabs">
                                 <button class="chart-tab active" data-period="30">30 дней</button>
                                 <button class="chart-tab" data-period="90">90 дней</button>
@@ -291,6 +291,10 @@
                             </div>
                             <button class="btn btn-primary" id="addWeightBtn">Записать</button>
                         </div>
+                        <div class="weight-progress" id="weightProgress" style="display: none;">
+                            <div>Изменение: <strong id="weightChange">0</strong> кг</div>
+                            <div>Целевой вес: <strong id="targetWeight">--</strong> кг</div>
+                        </div>
                     </div>
                 </div>
 
@@ -299,6 +303,13 @@
                         <h3 class="chart-title">Калории по дням</h3>
                     </div>
                     <canvas id="caloriesChart"></canvas>
+                </div>
+
+                <div class="chart-container" style="margin-top: 28px;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Водный баланс</h3>
+                    </div>
+                    <canvas id="waterChart"></canvas>
                 </div>
             </div>
 
@@ -318,6 +329,14 @@
                             </div>
                         </div>
                     </div>
+                    <div class="water-goal-info">
+                        <div>Цель: <strong id="waterGoal">2000</strong> мл</div>
+                        <div>Осталось: <strong id="waterRemaining">2000</strong> мл</div>
+                    </div>
+                    <div class="water-custom-input">
+                        <input type="number" id="customWaterAmount" placeholder="Свой объем (мл)" />
+                        <button onclick="addCustomWater()">Добавить</button>
+                    </div>
                     <div class="water-buttons">
                         <button class="water-btn" data-water="150">+150 мл</button>
                         <button class="water-btn" data-water="200">+200 мл</button>
@@ -336,35 +355,41 @@
                 </div>
 
                 <div class="activity-grid" id="activityGrid">
-                    <div class="activity-type-card" data-type="0">
-                        <div class="activity-icon">🚶</div>
-                        <div class="activity-name">Ходьба</div>
-                        <div class="activity-cal">~4 ккал/мин</div>
+                    <div class="activity-type-card" data-type="0" data-bg="img/activity/walking.jpg">
+                        <div class="activity-content">
+                            <div class="activity-name">Ходьба</div>
+                            <div class="activity-cal">~4 ккал/мин</div>
+                        </div>
                     </div>
-                    <div class="activity-type-card" data-type="1">
-                        <div class="activity-icon">🏃</div>
-                        <div class="activity-name">Бег</div>
-                        <div class="activity-cal">~10 ккал/мин</div>
+                    <div class="activity-type-card" data-type="1" data-bg="img/activity/runinng.jpg">
+                        <div class="activity-content">
+                            <div class="activity-name">Бег</div>
+                            <div class="activity-cal">~10 ккал/мин</div>
+                        </div>
                     </div>
-                    <div class="activity-type-card" data-type="2">
-                        <div class="activity-icon">🚴</div>
-                        <div class="activity-name">Велосипед</div>
-                        <div class="activity-cal">~8 ккал/мин</div>
+                    <div class="activity-type-card" data-type="2" data-bg="img/activity/sykling.jpg">
+                        <div class="activity-content">
+                            <div class="activity-name">Велосипед</div>
+                            <div class="activity-cal">~8 ккал/мин</div>
+                        </div>
                     </div>
-                    <div class="activity-type-card" data-type="3">
-                        <div class="activity-icon">🏊</div>
-                        <div class="activity-name">Плавание</div>
-                        <div class="activity-cal">~9 ккал/мин</div>
+                    <div class="activity-type-card" data-type="3" data-bg="img/activity/swiminng.jpg">
+                        <div class="activity-content">
+                            <div class="activity-name">Плавание</div>
+                            <div class="activity-cal">~9 ккал/мин</div>
+                        </div>
                     </div>
-                    <div class="activity-type-card" data-type="4">
-                        <div class="activity-icon">🏋️</div>
-                        <div class="activity-name">Силовая</div>
-                        <div class="activity-cal">~6 ккал/мин</div>
+                    <div class="activity-type-card" data-type="4" data-bg="img/activity/strenghtness.jpg">
+                        <div class="activity-content">
+                            <div class="activity-name">Силовая</div>
+                            <div class="activity-cal">~6 ккал/мин</div>
+                        </div>
                     </div>
-                    <div class="activity-type-card" data-type="5">
-                        <div class="activity-icon">🧘</div>
-                        <div class="activity-name">Йога</div>
-                        <div class="activity-cal">~3 ккал/мин</div>
+                    <div class="activity-type-card" data-type="5" data-bg="img/activity/yoga.jpg">
+                        <div class="activity-content">
+                            <div class="activity-name">Йога</div>
+                            <div class="activity-cal">~3 ккал/мин</div>
+                        </div>
                     </div>
                 </div>
 
@@ -569,10 +594,10 @@
                     <span>Итого за <span id="totalGrams">100</span>г:</span>
                 </div>
                 <div class="total-nutrition-values">
-                    <strong><span id="totalCalories">0</span> ккал</strong>
-                    <span>Б: <span id="totalProtein">0</span>г</span>
-                    <span>У: <span id="totalCarbs">0</span>г</span>
-                    <span>Ж: <span id="totalFat">0</span>г</span>
+                    <strong><span id="modalTotalCalories">0</span> ккал</strong>
+                    <span>Б: <span id="modalTotalProtein">0</span>г</span>
+                    <span>У: <span id="modalTotalCarbs">0</span>г</span>
+                    <span>Ж: <span id="modalTotalFat">0</span>г</span>
                 </div>
             </div>
             <button class="btn btn-primary" style="width: 100%;" id="addProductDetailBtn">Добавить в дневник</button>

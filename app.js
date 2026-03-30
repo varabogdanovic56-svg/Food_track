@@ -12,6 +12,8 @@ let selectedActivityType = null;
 let selectedDietitianId = 1;
 let waterIntake = 0;
 let weightChart = null;
+let waterChart = null;
+let waterHistory = [];
 let caloriesChart = null;
 
 const API_BASE = 'http://localhost:5001/api';
@@ -142,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRecommendations();
     loadChatMessages();
     initCharts();
+    loadWeightHistory();
     document.getElementById('activityDate').valueAsDate = new Date();
     
     // Event Listeners
@@ -184,12 +187,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Weight button
     document.getElementById('addWeightBtn').addEventListener('click', addWeightRecord);
     
+    // Weight input - auto calculate water goal
+    document.getElementById('weightInput').addEventListener('input', function() {
+        const weight = parseFloat(this.value);
+        if (weight && weight > 0) {
+            localStorage.setItem('userWeight', weight);
+            calculateWaterGoal();
+        }
+    });
+    
     // Water buttons
     document.querySelectorAll('.water-btn').forEach(btn => {
         btn.addEventListener('click', (e) => addWater(parseInt(e.target.dataset.water)));
     });
     
-    // Activity cards
+    // Activity cards - set background images
+    document.querySelectorAll('.activity-type-card').forEach(card => {
+        const bg = card.dataset.bg;
+        if (bg) {
+            card.style.backgroundImage = `url('${bg}')`;
+        }
+    });
+    
+    // Activity cards click
     document.querySelectorAll('.activity-type-card').forEach(card => {
         card.addEventListener('click', () => selectActivityType(parseInt(card.dataset.type)));
     });
@@ -236,6 +256,12 @@ document.addEventListener('input', function(e) {
     }
 });
 
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'productDetailGrams') {
+        updateProductDetailNutrition();
+    }
+});
+
 // Navigation
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -253,6 +279,15 @@ function showPage(pageId) {
     
     if (pageId === 'chat') {
         loadChatMessages();
+    }
+    
+    if (pageId === 'water') {
+        calculateWaterGoal();
+    }
+    
+    if (pageId === 'progress') {
+        calculateWaterGoal();
+        updateWaterChart();
     }
     
     if (pageId === 'products') {
@@ -354,12 +389,12 @@ const productsDatabase = [
     { id: 2, name: 'Говядина', category: 'Мясо', caloriesPer100g: 250, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 15, defaultGrams: 100 },
     { id: 3, name: 'Свинина', category: 'Мясо', caloriesPer100g: 242, proteinPer100g: 27, carbsPer100g: 0, fatPer100g: 14, defaultGrams: 100 },
     { id: 4, name: 'Индейка', category: 'Мясо', caloriesPer100g: 135, proteinPer100g: 30, carbsPer100g: 0, fatPer100g: 1, defaultGrams: 100 },
-    { id: 5, name: 'Баранина', category: 'Мясо', caloriesPer100g: 294, proteinPer100g: 25, carbsPer100g: 0, fatPer100g: 21, defaultGrams: 100 },
-    { id: 6, name: 'Кролик', category: 'Мясо', caloriesPer100g: 173, proteinPer100g: 33, carbsPer100g: 0, fatPer100g: 3.5, defaultGrams: 100 },
-    { id: 7, name: 'Ветчина', category: 'Мясо', caloriesPer100g: 145, proteinPer100g: 22, carbsPer100g: 1, fatPer100g: 5, defaultGrams: 50 },
-    { id: 8, name: 'Бекон', category: 'Мясо', caloriesPer100g: 541, proteinPer100g: 37, carbsPer100g: 1.4, fatPer100g: 42, defaultGrams: 30 },
-    { id: 9, name: 'Колбаса вареная', category: 'Мясо', caloriesPer100g: 301, proteinPer100g: 12, carbsPer100g: 2, fatPer100g: 27, defaultGrams: 50 },
-    { id: 10, name: 'Печень куриная', category: 'Мясо', caloriesPer100g: 167, proteinPer100g: 24, carbsPer100g: 1, fatPer100g: 6, defaultGrams: 100 },
+    { id: 5, name: 'Утка', category: 'Мясо', caloriesPer100g: 337, proteinPer100g: 19, carbsPer100g: 0, fatPer100g: 28, defaultGrams: 100 },
+    { id: 6, name: 'Баранина', category: 'Мясо', caloriesPer100g: 294, proteinPer100g: 25, carbsPer100g: 0, fatPer100g: 21, defaultGrams: 100 },
+    { id: 7, name: 'Кролик', category: 'Мясо', caloriesPer100g: 173, proteinPer100g: 33, carbsPer100g: 0, fatPer100g: 3.5, defaultGrams: 100 },
+    { id: 8, name: 'Ветчина', category: 'Мясо', caloriesPer100g: 145, proteinPer100g: 22, carbsPer100g: 1, fatPer100g: 5, defaultGrams: 50 },
+    { id: 9, name: 'Бекон', category: 'Мясо', caloriesPer100g: 541, proteinPer100g: 37, carbsPer100g: 1.4, fatPer100g: 42, defaultGrams: 30 },
+    { id: 10, name: 'Колбаса вареная', category: 'Мясо', caloriesPer100g: 301, proteinPer100g: 12, carbsPer100g: 2, fatPer100g: 27, defaultGrams: 50 },
     
     // РЫБА (10)
     { id: 11, name: 'Лосось', category: 'Рыба', caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatPer100g: 13, defaultGrams: 150 },
@@ -368,7 +403,7 @@ const productsDatabase = [
     { id: 14, name: 'Сельдь', category: 'Рыба', caloriesPer100g: 158, proteinPer100g: 18, carbsPer100g: 0, fatPer100g: 9, defaultGrams: 100 },
     { id: 15, name: 'Скумбрия', category: 'Рыба', caloriesPer100g: 205, proteinPer100g: 19, carbsPer100g: 0, fatPer100g: 14, defaultGrams: 100 },
     { id: 16, name: 'Треска', category: 'Рыба', caloriesPer100g: 82, proteinPer100g: 18, carbsPer100g: 0, fatPer100g: 0.7, defaultGrams: 150 },
-    { id: 17, name: 'Горбуша', category: 'Рыба', caloriesPer100g: 147, proteinPer100g: 21, carbsPer100g: 0, fatPer100g: 6, defaultGrams: 150 },
+    { id: 17, name: 'Камбала', category: 'Рыба', caloriesPer100g: 83, proteinPer100g: 18, carbsPer100g: 0, fatPer100g: 0.5, defaultGrams: 150 },
     { id: 18, name: 'Креветки', category: 'Рыба', caloriesPer100g: 99, proteinPer100g: 24, carbsPer100g: 0.2, fatPer100g: 0.3, defaultGrams: 100 },
     { id: 19, name: 'Мидии', category: 'Рыба', caloriesPer100g: 86, proteinPer100g: 12, carbsPer100g: 3, fatPer100g: 2, defaultGrams: 100 },
     { id: 20, name: 'Кальмар', category: 'Рыба', caloriesPer100g: 92, proteinPer100g: 18, carbsPer100g: 2, fatPer100g: 1, defaultGrams: 100 },
@@ -389,7 +424,7 @@ const productsDatabase = [
     { id: 31, name: 'Яйцо куриное', category: 'Яйца', caloriesPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatPer100g: 11, defaultGrams: 50 },
     { id: 32, name: 'Яйцо перепелиное', category: 'Яйца', caloriesPer100g: 158, proteinPer100g: 13, carbsPer100g: 0.6, fatPer100g: 11, defaultGrams: 30 },
     { id: 33, name: 'Белок яичный', category: 'Яйца', caloriesPer100g: 52, proteinPer100g: 11, carbsPer100g: 0.7, fatPer100g: 0.2, defaultGrams: 100 },
-    
+
     // КРУПЫ (10)
     { id: 34, name: 'Рис белый', category: 'Крупы', caloriesPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3, defaultGrams: 150 },
     { id: 35, name: 'Гречка', category: 'Крупы', caloriesPer100g: 343, proteinPer100g: 12.6, carbsPer100g: 70, fatPer100g: 3.3, defaultGrams: 100 },
@@ -402,7 +437,7 @@ const productsDatabase = [
     { id: 42, name: 'Пшено', category: 'Крупы', caloriesPer100g: 343, proteinPer100g: 11, carbsPer100g: 70, fatPer100g: 3.5, defaultGrams: 100 },
     { id: 43, name: 'Кус-кус', category: 'Крупы', caloriesPer100g: 112, proteinPer100g: 3.8, carbsPer100g: 23, fatPer100g: 0.2, defaultGrams: 100 },
     
-    // ОВОЩИ (10)
+    // ОВОЩИ (15)
     { id: 44, name: 'Брокколи', category: 'Овощи', caloriesPer100g: 34, proteinPer100g: 2.8, carbsPer100g: 7, fatPer100g: 0.4, defaultGrams: 150 },
     { id: 45, name: 'Морковь', category: 'Овощи', caloriesPer100g: 41, proteinPer100g: 0.9, carbsPer100g: 10, fatPer100g: 0.2, defaultGrams: 100 },
     { id: 46, name: 'Помидор', category: 'Овощи', caloriesPer100g: 18, proteinPer100g: 0.9, carbsPer100g: 3.9, fatPer100g: 0.2, defaultGrams: 150 },
@@ -413,63 +448,37 @@ const productsDatabase = [
     { id: 51, name: 'Шпинат', category: 'Овощи', caloriesPer100g: 23, proteinPer100g: 2.9, carbsPer100g: 3.6, fatPer100g: 0.4, defaultGrams: 50 },
     { id: 52, name: 'Салат', category: 'Овощи', caloriesPer100g: 15, proteinPer100g: 1.4, carbsPer100g: 2.9, fatPer100g: 0.2, defaultGrams: 50 },
     { id: 53, name: 'Кабачок', category: 'Овощи', caloriesPer100g: 17, proteinPer100g: 1.2, carbsPer100g: 3.1, fatPer100g: 0.3, defaultGrams: 150 },
+    { id: 54, name: 'Баклажан', category: 'Овощи', caloriesPer100g: 25, proteinPer100g: 1, carbsPer100g: 6, fatPer100g: 0.2, defaultGrams: 150 },
+    { id: 55, name: 'Свекла', category: 'Овощи', caloriesPer100g: 43, proteinPer100g: 1.6, carbsPer100g: 10, fatPer100g: 0.2, defaultGrams: 100 },
+    { id: 56, name: 'Чеснок', category: 'Овощи', caloriesPer100g: 149, proteinPer100g: 6.4, carbsPer100g: 33, fatPer100g: 0.5, defaultGrams: 10 },
+    { id: 57, name: 'Картофель', category: 'Овощи', caloriesPer100g: 77, proteinPer100g: 2, carbsPer100g: 17, fatPer100g: 0.1, defaultGrams: 150 },
+    { id: 58, name: 'Кукуруза', category: 'Овощи', caloriesPer100g: 86, proteinPer100g: 3.3, carbsPer100g: 19, fatPer100g: 1.4, defaultGrams: 100 },
+    
+    // ФРУКТЫ (12)
+    { id: 59, name: 'Банан', category: 'Фрукты', caloriesPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatPer100g: 0.3, defaultGrams: 120 },
+    { id: 60, name: 'Яблоко', category: 'Фрукты', caloriesPer100g: 52, proteinPer100g: 0.3, carbsPer100g: 14, fatPer100g: 0.2, defaultGrams: 180 },
+    { id: 61, name: 'Апельсин', category: 'Фрукты', caloriesPer100g: 47, proteinPer100g: 0.9, carbsPer100g: 12, fatPer100g: 0.1, defaultGrams: 150 },
+    { id: 62, name: 'Авокадо', category: 'Фрукты', caloriesPer100g: 160, proteinPer100g: 2, carbsPer100g: 9, fatPer100g: 15, defaultGrams: 100 },
+    { id: 63, name: 'Киви', category: 'Фрукты', caloriesPer100g: 61, proteinPer100g: 1.1, carbsPer100g: 15, fatPer100g: 0.5, defaultGrams: 75 },
+    { id: 64, name: 'Виноград', category: 'Фрукты', caloriesPer100g: 69, proteinPer100g: 0.7, carbsPer100g: 18, fatPer100g: 0.2, defaultGrams: 100 },
+    { id: 65, name: 'Клубника', category: 'Фрукты', caloriesPer100g: 32, proteinPer100g: 0.7, carbsPer100g: 8, fatPer100g: 0.3, defaultGrams: 100 },
+    { id: 66, name: 'Малина', category: 'Фрукты', caloriesPer100g: 52, proteinPer100g: 1.2, carbsPer100g: 12, fatPer100g: 0.7, defaultGrams: 100 },
+    { id: 67, name: 'Груша', category: 'Фрукты', caloriesPer100g: 57, proteinPer100g: 0.4, carbsPer100g: 15, fatPer100g: 0.1, defaultGrams: 180 },
+    { id: 68, name: 'Персик', category: 'Фрукты', caloriesPer100g: 39, proteinPer100g: 0.9, carbsPer100g: 10, fatPer100g: 0.3, defaultGrams: 150 },
+    { id: 69, name: 'Арбуз', category: 'Фрукты', caloriesPer100g: 30, proteinPer100g: 0.6, carbsPer100g: 8, fatPer100g: 0.1, defaultGrams: 200 },
+    { id: 70, name: 'Дыня', category: 'Фрукты', caloriesPer100g: 35, proteinPer100g: 0.8, carbsPer100g: 8, fatPer100g: 0.2, defaultGrams: 150 },
+    
+    // ОРЕХИ (8)
+    { id: 71, name: 'Миндаль', category: 'Орехи', caloriesPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatPer100g: 50, defaultGrams: 30 },
+    { id: 72, name: 'Грецкие орехи', category: 'Орехи', caloriesPer100g: 654, proteinPer100g: 15, carbsPer100g: 14, fatPer100g: 65, defaultGrams: 30 },
+    { id: 73, name: 'Кешью', category: 'Орехи', caloriesPer100g: 553, proteinPer100g: 18, carbsPer100g: 30, fatPer100g: 44, defaultGrams: 30 },
+    { id: 74, name: 'Фундук', category: 'Орехи', caloriesPer100g: 628, proteinPer100g: 15, carbsPer100g: 17, fatPer100g: 61, defaultGrams: 30 },
+    { id: 75, name: 'Арахис', category: 'Орехи', caloriesPer100g: 567, proteinPer100g: 26, carbsPer100g: 16, fatPer100g: 49, defaultGrams: 30 },
+    { id: 76, name: 'Кедровые орехи', category: 'Орехи', caloriesPer100g: 673, proteinPer100g: 14, carbsPer100g: 13, fatPer100g: 68, defaultGrams: 20 },
+    { id: 77, name: 'Семена подсолнуха', category: 'Орехи', caloriesPer100g: 584, proteinPer100g: 21, carbsPer100g: 20, fatPer100g: 51, defaultGrams: 30 },
+    { id: 78, name: 'Семена льна', category: 'Орехи', caloriesPer100g: 534, proteinPer100g: 18, carbsPer100g: 29, fatPer100g: 42, defaultGrams: 20 },
 ];
 
-const dishesDatabase = [
-    // БЛЮДА (50)
-    { id: 54, name: 'Салат Цезарь', category: 'Блюда', caloriesPer100g: 190, proteinPer100g: 8, carbsPer100g: 8, fatPer100g: 14, defaultGrams: 200 },
-    { id: 55, name: 'Греческий салат', category: 'Блюда', caloriesPer100g: 120, proteinPer100g: 4, carbsPer100g: 6, fatPer100g: 9, defaultGrams: 200 },
-    { id: 56, name: 'Оливье', category: 'Блюда', caloriesPer100g: 160, proteinPer100g: 5, carbsPer100g: 12, fatPer100g: 10, defaultGrams: 200 },
-    { id: 57, name: 'Борщ', category: 'Блюда', caloriesPer100g: 45, proteinPer100g: 2, carbsPer100g: 6, fatPer100g: 1.5, defaultGrams: 300 },
-    { id: 58, name: 'Щи', category: 'Блюда', caloriesPer100g: 32, proteinPer100g: 1.5, carbsPer100g: 4, fatPer100g: 1, defaultGrams: 300 },
-    { id: 59, name: 'Суп куриный', category: 'Блюда', caloriesPer100g: 35, proteinPer100g: 3, carbsPer100g: 3, fatPer100g: 1.5, defaultGrams: 300 },
-    { id: 60, name: 'Уха', category: 'Блюда', caloriesPer100g: 45, proteinPer100g: 6, carbsPer100g: 2, fatPer100g: 1.5, defaultGrams: 300 },
-    { id: 61, name: 'Пельмени', category: 'Блюда', caloriesPer100g: 250, proteinPer100g: 12, carbsPer100g: 25, fatPer100g: 12, defaultGrams: 250 },
-    { id: 62, name: 'Блины', category: 'Блюда', caloriesPer100g: 230, proteinPer100g: 6, carbsPer100g: 30, fatPer100g: 9, defaultGrams: 150 },
-    { id: 63, name: 'Омлет', category: 'Блюда', caloriesPer100g: 215, proteinPer100g: 14, carbsPer100g: 2, fatPer100g: 17, defaultGrams: 150 },
-    { id: 64, name: 'Яичница', category: 'Блюда', caloriesPer100g: 240, proteinPer100g: 14, carbsPer100g: 1, fatPer100g: 20, defaultGrams: 120 },
-    { id: 65, name: 'Вареники с картошкой', category: 'Блюда', caloriesPer100g: 220, proteinPer100g: 5, carbsPer100g: 35, fatPer100g: 7, defaultGrams: 200 },
-    { id: 66, name: 'Голубцы', category: 'Блюда', caloriesPer100g: 145, proteinPer100g: 9, carbsPer100g: 10, fatPer100g: 8, defaultGrams: 250 },
-    { id: 67, name: 'Котлета куриная', category: 'Блюда', caloriesPer100g: 220, proteinPer100g: 18, carbsPer100g: 10, fatPer100g: 12, defaultGrams: 100 },
-    { id: 68, name: 'Котлета говяжья', category: 'Блюда', caloriesPer100g: 260, proteinPer100g: 17, carbsPer100g: 8, fatPer100g: 18, defaultGrams: 100 },
-    { id: 69, name: 'Шашлык свиной', category: 'Блюда', caloriesPer100g: 260, proteinPer100g: 24, carbsPer100g: 2, fatPer100g: 17, defaultGrams: 150 },
-    { id: 70, name: 'Стейк лосося', category: 'Блюда', caloriesPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatPer100g: 13, defaultGrams: 150 },
-    { id: 71, name: 'Курица гриль', category: 'Блюда', caloriesPer100g: 190, proteinPer100g: 25, carbsPer100g: 0, fatPer100g: 10, defaultGrams: 200 },
-    { id: 72, name: 'Плов', category: 'Блюда', caloriesPer100g: 160, proteinPer100g: 7, carbsPer100g: 20, fatPer100g: 6, defaultGrams: 250 },
-    { id: 73, name: 'Макароны по-флотски', category: 'Блюда', caloriesPer100g: 220, proteinPer100g: 9, carbsPer100g: 25, fatPer100g: 10, defaultGrams: 250 },
-    { id: 74, name: 'Картофельное пюре', category: 'Блюда', caloriesPer100g: 80, proteinPer100g: 2, carbsPer100g: 15, fatPer100g: 1.5, defaultGrams: 200 },
-    { id: 75, name: 'Рис отварной', category: 'Блюда', caloriesPer100g: 113, proteinPer100g: 2.4, carbsPer100g: 25, fatPer100g: 0.2, defaultGrams: 150 },
-    { id: 76, name: 'Гречка отварная', category: 'Блюда', caloriesPer100g: 110, proteinPer100g: 3.8, carbsPer100g: 21, fatPer100g: 0.6, defaultGrams: 150 },
-    { id: 77, name: 'Тефтели', category: 'Блюда', caloriesPer100g: 220, proteinPer100g: 14, carbsPer100g: 10, fatPer100g: 14, defaultGrams: 200 },
-    { id: 78, name: 'Подлива', category: 'Блюда', caloriesPer100g: 85, proteinPer100g: 5, carbsPer100g: 6, fatPer100g: 4, defaultGrams: 100 },
-    { id: 79, name: 'Рагу овощное', category: 'Блюда', caloriesPer100g: 65, proteinPer100g: 2, carbsPer100g: 10, fatPer100g: 2, defaultGrams: 250 },
-    { id: 80, name: 'Запеканка творожная', category: 'Блюда', caloriesPer100g: 180, proteinPer100g: 14, carbsPer100g: 18, fatPer100g: 6, defaultGrams: 200 },
-    { id: 81, name: 'Сырники', category: 'Блюда', caloriesPer100g: 240, proteinPer100g: 12, carbsPer100g: 25, fatPer100g: 12, defaultGrams: 150 },
-    { id: 82, name: 'Драники', category: 'Блюда', caloriesPer100g: 220, proteinPer100g: 4, carbsPer100g: 30, fatPer100g: 10, defaultGrams: 150 },
-    { id: 83, name: 'Жареная картошка', category: 'Блюда', caloriesPer100g: 320, proteinPer100g: 4, carbsPer100g: 35, fatPer100g: 18, defaultGrams: 200 },
-    { id: 84, name: 'Овощи на гриле', category: 'Блюда', caloriesPer100g: 55, proteinPer100g: 2, carbsPer100g: 8, fatPer100g: 1.5, defaultGrams: 200 },
-    { id: 85, name: 'Фаршированный перец', category: 'Блюда', caloriesPer100g: 160, proteinPer100g: 10, carbsPer100g: 15, fatPer100g: 7, defaultGrams: 250 },
-    { id: 86, name: 'Ленивые голубцы', category: 'Блюда', caloriesPer100g: 150, proteinPer100g: 8, carbsPer100g: 14, fatPer100g: 7, defaultGrams: 250 },
-    { id: 87, name: 'Солянка', category: 'Блюда', caloriesPer100g: 100, proteinPer100g: 8, carbsPer100g: 6, fatPer100g: 5, defaultGrams: 300 },
-    { id: 88, name: 'Рассольник', category: 'Блюда', caloriesPer100g: 50, proteinPer100g: 2.5, carbsPer100g: 7, fatPer100g: 1.5, defaultGrams: 300 },
-    { id: 89, name: 'Грибной суп', category: 'Блюда', caloriesPer100g: 40, proteinPer100g: 2, carbsPer100g: 5, fatPer100g: 2, defaultGrams: 300 },
-    { id: 90, name: 'Суп-пюре овощной', category: 'Блюда', caloriesPer100g: 45, proteinPer100g: 1.5, carbsPer100g: 8, fatPer100g: 1, defaultGrams: 250 },
-    { id: 91, name: 'Рубленые котлеты', category: 'Блюда', caloriesPer100g: 250, proteinPer100g: 16, carbsPer100g: 8, fatPer100g: 18, defaultGrams: 150 },
-    { id: 92, name: 'Куриные наггетсы', category: 'Блюда', caloriesPer100g: 290, proteinPer100g: 17, carbsPer100g: 18, fatPer100g: 18, defaultGrams: 150 },
-    { id: 93, name: 'Картошка по-деревенски', category: 'Блюда', caloriesPer100g: 280, proteinPer100g: 4, carbsPer100g: 35, fatPer100g: 14, defaultGrams: 200 },
-    { id: 94, name: 'Овощной салат', category: 'Блюда', caloriesPer100g: 45, proteinPer100g: 2, carbsPer100g: 8, fatPer100g: 0.5, defaultGrams: 200 },
-    { id: 95, name: 'Салат с тунцом', category: 'Блюда', caloriesPer100g: 180, proteinPer100g: 20, carbsPer100g: 5, fatPer100g: 9, defaultGrams: 200 },
-    { id: 96, name: 'Винегрет', category: 'Блюда', caloriesPer100g: 70, proteinPer100g: 2, carbsPer100g: 12, fatPer100g: 1.5, defaultGrams: 200 },
-    { id: 97, name: 'Мимоза', category: 'Блюда', caloriesPer100g: 200, proteinPer100g: 9, carbsPer100g: 12, fatPer100g: 14, defaultGrams: 150 },
-    { id: 98, name: 'Селедка под шубой', category: 'Блюда', caloriesPer100g: 210, proteinPer100g: 7, carbsPer100g: 15, fatPer100g: 14, defaultGrams: 150 },
-    { id: 99, name: 'Каша манная', category: 'Блюда', caloriesPer100g: 100, proteinPer100g: 3, carbsPer100g: 18, fatPer100g: 1.5, defaultGrams: 200 },
-    { id: 100, name: 'Каша рисовая', category: 'Блюда', caloriesPer100g: 95, proteinPer100g: 2, carbsPer100g: 20, fatPer100g: 0.5, defaultGrams: 200 },
-    { id: 101, name: 'Каша пшённая', category: 'Блюда', caloriesPer100g: 90, proteinPer100g: 3, carbsPer100g: 18, fatPer100g: 1, defaultGrams: 200 },
-    { id: 102, name: 'Каша кукурузная', category: 'Блюда', caloriesPer100g: 85, proteinPer100g: 2.5, carbsPer100g: 17, fatPer100g: 1, defaultGrams: 200 },
-    { id: 103, name: 'Овсяная каша', category: 'Блюда', caloriesPer100g: 88, proteinPer100g: 3, carbsPer100g: 15, fatPer100g: 2, defaultGrams: 200 },
-];
-
-const allFoods = [...productsDatabase, ...dishesDatabase];
 
 function loadProducts(query) {
     let filtered = allFoods;
@@ -506,14 +515,21 @@ function renderProducts(products) {
 }
 
 function selectProduct(product) {
-    selectedProductDetail = product;
+    selectedProductDetail = {
+        name: product.name || product.Name || 'Без названия',
+        calories: product.caloriesPer100g || product.CaloriesPer100g || 0,
+        protein: product.proteinPer100g || product.ProteinPer100g || 0,
+        carbs: product.carbsPer100g || product.CarbsPer100g || 0,
+        fat: product.fatPer100g || product.FatPer100g || 0,
+        category: product.category || product.Category || ''
+    };
     
-    const name = product.name || product.Name || 'Без названия';
-    const calories = product.caloriesPer100g || product.CaloriesPer100g || 0;
-    const protein = product.proteinPer100g || product.ProteinPer100g || 0;
-    const carbs = product.carbsPer100g || product.CarbsPer100g || 0;
-    const fat = product.fatPer100g || product.FatPer100g || 0;
-    const category = product.category || product.Category || '';
+    const name = selectedProductDetail.name;
+    const calories = selectedProductDetail.calories;
+    const protein = selectedProductDetail.protein;
+    const carbs = selectedProductDetail.carbs;
+    const fat = selectedProductDetail.fat;
+    const category = selectedProductDetail.category;
     
     document.getElementById('productDetailName').textContent = name;
     document.getElementById('productDetailCategory').textContent = category;
@@ -523,10 +539,10 @@ function selectProduct(product) {
     document.getElementById('productDetailFat').textContent = fat;
     document.getElementById('productDetailGrams').value = 100;
     document.getElementById('totalGrams').textContent = 100;
-    document.getElementById('totalCalories').textContent = calories;
-    document.getElementById('totalProtein').textContent = protein;
-    document.getElementById('totalCarbs').textContent = carbs;
-    document.getElementById('totalFat').textContent = fat;
+    document.getElementById('modalTotalCalories').textContent = calories;
+    document.getElementById('modalTotalProtein').textContent = protein;
+    document.getElementById('modalTotalCarbs').textContent = carbs;
+    document.getElementById('modalTotalFat').textContent = fat;
     
     const detailImg = document.getElementById('productDetailImage');
     detailImg.style.display = 'none';
@@ -1433,6 +1449,22 @@ const recipesDatabase = [
     }
 ];
 
+const allFoods = [
+    ...productsDatabase,
+    ...recipesDatabase.map(r => ({
+        id: r.id + 1000,
+        name: r.name,
+        category: r.cuisine || 'Блюдо',
+        caloriesPer100g: r.totalNutrition?.calories || 0,
+        proteinPer100g: r.totalNutrition?.protein || 0,
+        carbsPer100g: r.totalNutrition?.carbs || 0,
+        fatPer100g: r.totalNutrition?.fat || 0,
+        defaultGrams: r.servings ? r.servings * 100 : 100,
+        imageUrl: r.imageUrl,
+        recipe: r
+    }))
+];
+
 // Use local recipes database
 function loadRecipes() {
     recipes = recipesDatabase;
@@ -1526,29 +1558,41 @@ function renderProductsPage(productsToRender) {
         const category = p.category || p.Category || '';
         const productJson = JSON.stringify(p).replace(/'/g, "\\'");
         
+        // Try to get image from getProductImage function, or use p.imageUrl
+        const productImg = getProductImage ? getProductImage(name) : null;
+        const imageUrl = p.imageUrl || productImg || '';
+        
+        const bgImage = imageUrl ? `url('${imageUrl}')` : `linear-gradient(135deg, var(--primary), var(--secondary))`;
+        
         return `
-        <div class="product-card" onclick='selectProduct(${productJson})'>
-            <div class="product-image-placeholder"></div>
-            <div class="product-card-header">
-                <span class="product-category">${category}</span>
-            </div>
-            <div class="product-card-name">${name}</div>
-            <div class="product-card-nutrition">
-                <div class="nutrition-mini">
-                    <span class="nutrition-cal">${Math.round(calories)}</span>
-                    <span class="nutrition-label">ккал</span>
+        <div class="recipe-card" onclick='selectProduct(${productJson})'>
+            <div class="recipe-image" style="background-image: ${bgImage}"></div>
+            <div class="recipe-content">
+                <h3 class="recipe-name">${name}</h3>
+                <div class="recipe-info">
+                    <span>🥩 ${category || 'Блюдо'}</span>
+                    <span>⚖️ ${p.defaultGrams || 100}г</span>
                 </div>
-                <div class="nutrition-mini">
-                    <span>Б: ${Math.round(protein)}</span>
+                <div class="recipe-nutrition">
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">${Math.round(calories)}</div>
+                        <div class="nutrition-label">ккал</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">${Math.round(protein)}</div>
+                        <div class="nutrition-label">белок</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">${Math.round(carbs)}</div>
+                        <div class="nutrition-label">угл</div>
+                    </div>
+                    <div class="nutrition-item">
+                        <div class="nutrition-value">${Math.round(fat)}</div>
+                        <div class="nutrition-label">жир</div>
+                    </div>
                 </div>
-                <div class="nutrition-mini">
-                    <span>У: ${Math.round(carbs)}</span>
-                </div>
-                <div class="nutrition-mini">
-                    <span>Ж: ${Math.round(fat)}</span>
-                </div>
-            </div>
                 <button class="btn-add-product" onclick="event.stopPropagation(); openProductDetailModal('${name.replace(/'/g, "\\'")}', ${calories}, ${protein}, ${carbs}, ${fat}, '${category.replace(/'/g, "\\'")}')">+ Добавить</button>
+            </div>
         </div>
         `;
     }).join('');
@@ -1565,10 +1609,10 @@ function openProductDetailModal(name, calories, protein, carbs, fat, category) {
     document.getElementById('productDetailFat').textContent = fat;
     document.getElementById('productDetailGrams').value = 100;
     document.getElementById('totalGrams').textContent = 100;
-    document.getElementById('totalCalories').textContent = calories;
-    document.getElementById('totalProtein').textContent = protein;
-    document.getElementById('totalCarbs').textContent = carbs;
-    document.getElementById('totalFat').textContent = fat;
+    document.getElementById('modalTotalCalories').textContent = calories;
+    document.getElementById('modalTotalProtein').textContent = protein;
+    document.getElementById('modalTotalCarbs').textContent = carbs;
+    document.getElementById('modalTotalFat').textContent = fat;
     
     const detailImg = document.getElementById('productDetailImage');
     if (detailImg) detailImg.style.display = 'none';
@@ -1612,10 +1656,10 @@ function updateProductDetailNutrition() {
     const ratio = grams / 100;
     
     document.getElementById('totalGrams').textContent = grams;
-    document.getElementById('totalCalories').textContent = Math.round(selectedProductDetail.calories * ratio);
-    document.getElementById('totalProtein').textContent = Math.round(selectedProductDetail.protein * ratio);
-    document.getElementById('totalCarbs').textContent = Math.round(selectedProductDetail.carbs * ratio);
-    document.getElementById('totalFat').textContent = Math.round(selectedProductDetail.fat * ratio);
+    document.getElementById('modalTotalCalories').textContent = Math.round(selectedProductDetail.calories * ratio);
+    document.getElementById('modalTotalProtein').textContent = Math.round(selectedProductDetail.protein * ratio);
+    document.getElementById('modalTotalCarbs').textContent = Math.round(selectedProductDetail.carbs * ratio);
+    document.getElementById('modalTotalFat').textContent = Math.round(selectedProductDetail.fat * ratio);
 }
 
 function addProductDetailToMeal() {
@@ -1650,25 +1694,19 @@ function addProductDetailToMeal() {
 }
 
 // Charts
+let weightHistory = [];
+
 function initCharts() {
     const weightCtx = document.getElementById('weightChart').getContext('2d');
     weightChart = new Chart(weightCtx, {
         type: 'line',
         data: {
-            labels: Array.from({length: 30}, (_, i) => `${i + 1}`),
+            labels: [],
             datasets: [{
                 label: 'Вес (кг)',
-                data: Array.from({length: 30}, () => 75 + Math.random() * 2 - 1),
+                data: [],
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 3
-            }, {
-                label: 'Мышечная масса (кг)',
-                data: Array.from({length: 30}, () => 32 + Math.random() * 1 - 0.5),
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
                 fill: true,
                 tension: 0.4,
                 borderWidth: 3
@@ -1684,24 +1722,49 @@ function initCharts() {
             }
         }
     });
+    
+    const waterCtx = document.getElementById('waterChart')?.getContext('2d');
+    if (waterCtx) {
+        waterChart = new Chart(waterCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Выпито (мл)',
+                    data: [],
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderRadius: 8
+                }, {
+                    label: 'Норма (мл)',
+                    data: [],
+                    type: 'line',
+                    borderColor: '#ef4444',
+                    borderDash: [5, 5],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { 
+                    legend: { position: 'top' } 
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
 
     const caloriesCtx = document.getElementById('caloriesChart').getContext('2d');
     caloriesChart = new Chart(caloriesCtx, {
         type: 'bar',
         data: {
-            labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+            labels: [],
             datasets: [{
                 label: 'Калории',
-                data: [1800, 2100, 1950, 2200, 1850, 2300, 2000],
+                data: [],
                 backgroundColor: 'linear-gradient(90deg, #10b981, #34d399)',
                 borderRadius: 8
-            }, {
-                label: 'Норма',
-                data: [2000, 2000, 2000, 2000, 2000, 2000, 2000],
-                type: 'line',
-                borderColor: '#ef4444',
-                borderDash: [5, 5],
-                borderWidth: 2
             }]
         },
         options: {
@@ -1726,6 +1789,74 @@ function addWater(amount) {
     const percentage = Math.min((waterIntake / userGoals.water) * 100, 100);
     const degrees = (percentage / 100) * 360;
     document.getElementById('waterCircle').style.setProperty('--water-deg', degrees + 'deg');
+    
+    updateWaterRemaining();
+    saveWaterHistory();
+}
+
+function addCustomWater() {
+    const input = document.getElementById('customWaterAmount');
+    const amount = parseInt(input.value);
+    if (amount > 0) {
+        addWater(amount);
+        input.value = '';
+    }
+}
+
+function saveWaterHistory() {
+    const today = new Date().toLocaleDateString('ru-RU');
+    const existing = waterHistory.find(h => h.date === today);
+    if (existing) {
+        existing.amount = waterIntake;
+    } else {
+        waterHistory.push({ date: today, amount: waterIntake });
+    }
+    if (waterHistory.length > 7) waterHistory = waterHistory.slice(-7);
+    localStorage.setItem('waterHistory', JSON.stringify(waterHistory));
+    updateWaterChart();
+}
+
+function updateWaterChart() {
+    if (!waterChart) return;
+    const labels = waterHistory.map(w => w.date);
+    const data = waterHistory.map(w => w.amount);
+    waterChart.data.labels = labels;
+    waterChart.data.datasets[0].data = data;
+    waterChart.data.datasets[1].data = labels.map(() => userGoals.water);
+    waterChart.update();
+}
+
+function loadWaterHistory() {
+    const saved = localStorage.getItem('waterHistory');
+    if (saved) {
+        waterHistory = JSON.parse(saved);
+        const today = new Date().toLocaleDateString('ru-RU');
+        const todayEntry = waterHistory.find(h => h.date === today);
+        if (todayEntry) {
+            waterIntake = todayEntry.amount;
+            document.getElementById('waterAmount').textContent = waterIntake;
+            const percentage = Math.min((waterIntake / userGoals.water) * 100, 100);
+            const degrees = (percentage / 100) * 360;
+            document.getElementById('waterCircle').style.setProperty('--water-deg', degrees + 'deg');
+            updateWaterRemaining();
+        }
+        updateWaterChart();
+    }
+}
+
+function updateWaterRemaining() {
+    const remaining = Math.max(userGoals.water - waterIntake, 0);
+    document.getElementById('waterRemaining').textContent = remaining;
+    document.getElementById('waterGoal').textContent = userGoals.water;
+}
+
+function calculateWaterGoal() {
+    const weight = localStorage.getItem('userWeight') ? parseFloat(localStorage.getItem('userWeight')) : 70;
+    const activity = localStorage.getItem('userActivity') ? parseInt(localStorage.getItem('userActivity')) : 1;
+    let goal = weight * 35;
+    if (activity >= 2) goal += 500;
+    userGoals.water = Math.round(goal);
+    updateWaterRemaining();
 }
 
 // Activity
@@ -1963,8 +2094,55 @@ async function addWeightRecord() {
     const weight = parseFloat(document.getElementById('weightInput').value);
     if (!weight) return;
     
+    const today = new Date().toLocaleDateString('ru-RU');
+    
+    weightHistory.push({ date: today, weight: weight });
+    
+    localStorage.setItem('weightHistory', JSON.stringify(weightHistory));
+    localStorage.setItem('userWeight', weight);
+    
     document.getElementById('currentWeight').textContent = weight;
-    showToast('Вес записан: ' + weight + ' кг');
+    document.getElementById('weightInput').value = '';
+    
+    calculateWaterGoal();
+    updateWeightChart();
+    updateWeightProgress();
+    showToast('Вес записан: ' + weight + ' кг. Водный баланс обновлён: ' + userGoals.water + ' мл');
+}
+
+function updateWeightChart() {
+    const labels = weightHistory.map(w => w.date);
+    const data = weightHistory.map(w => w.weight);
+    
+    weightChart.data.labels = labels;
+    weightChart.data.datasets[0].data = data;
+    weightChart.update();
+}
+
+function updateWeightProgress() {
+    if (weightHistory.length < 2) {
+        document.getElementById('weightProgress').style.display = 'none';
+        return;
+    }
+    
+    const first = weightHistory[0].weight;
+    const current = weightHistory[weightHistory.length - 1].weight;
+    const change = (current - first).toFixed(1);
+    
+    document.getElementById('weightChange').textContent = (change > 0 ? '+' : '') + change;
+    document.getElementById('weightProgress').style.display = 'flex';
+}
+
+function loadWeightHistory() {
+    const saved = localStorage.getItem('weightHistory');
+    if (saved) {
+        weightHistory = JSON.parse(saved);
+        if (weightHistory.length > 0) {
+            document.getElementById('currentWeight').textContent = weightHistory[weightHistory.length - 1].weight;
+        }
+        updateWeightChart();
+        updateWeightProgress();
+    }
 }
 
 // Reminder modal
