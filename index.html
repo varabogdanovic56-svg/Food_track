@@ -520,11 +520,11 @@
     </div>
 
     <!-- Add Food Modal -->
-    <div class="modal-overlay" id="foodModal">
+    <div class="modal-overlay" id="foodModal" style="display: none;">
         <div class="modal">
             <div class="modal-header">
                 <h2 class="modal-title" id="modalMealTitle">Добавить в завтрак</h2>
-                <button class="modal-close" id="closeModalBtn">×</button>
+                <button class="modal-close" id="closeModalBtn" onclick="document.getElementById('foodModal').style.display='none'">×</button>
             </div>
             <div class="search-box">
                 <input type="text" class="search-input" placeholder="Поиск продуктов..." id="productSearch">
@@ -556,66 +556,77 @@
     </div>
 
     <!-- Product Detail Modal -->
-    <div class="modal-overlay" id="productDetailModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title" id="productDetailName">Название продукта</h2>
-                <button class="modal-close" id="closeProductDetailBtn">×</button>
-            </div>
-            <div class="product-detail-image" id="productDetailImage">
-                <div class="product-detail-icon" id="productDetailIcon"></div>
-            </div>
-            <div class="product-detail-category" id="productDetailCategory">Категория</div>
-            <div class="nutrition-per-100">На 100г:</div>
-            <div class="product-detail-nutrition">
-                <div class="nutrition-box">
-                    <div class="nutrition-value" id="productDetailCalories">0</div>
-                    <div class="nutrition-label">ккал</div>
+    <div id="productDetailModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:12px; padding:24px; max-width:450px; width:90%; margin:auto; position:relative;">
+            <button onclick="document.getElementById('productDetailModal').style.display='none'" style="position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; background:#f0f0f0; border-radius:50%; font-size:20px; cursor:pointer;">×</button>
+            <h2 id="productDetailName" style="font-size:18px; margin:0 0 8px 0;">Название продукта</h2>
+            <div id="productDetailCategory" style="font-size:13px; color:#666; margin-bottom:16px;">Категория</div>
+            
+            <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#666;">На 100г:</div>
+            <div style="display:flex; gap:6px; margin-bottom:16px;">
+                <div style="flex:1; background:linear-gradient(135deg, #F0FFF0 0%, #E8F5E9 100%); padding:10px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:16px; font-weight:700; color:#2E7D32;" id="productDetailCalories">0</div>
+                    <div style="font-size:10px; color:#666;">ккал</div>
                 </div>
-                <div class="nutrition-box">
-                    <div class="nutrition-value" id="productDetailProtein">0</div>
-                    <div class="nutrition-label">белки</div>
+                <div style="flex:1; background:linear-gradient(135deg, #F0F8FF 0%, #E3F2FD 100%); padding:10px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:16px; font-weight:700; color:#1565C0;" id="productDetailProtein">0</div>
+                    <div style="font-size:10px; color:#666;">белок</div>
                 </div>
-                <div class="nutrition-box">
-                    <div class="nutrition-value" id="productDetailCarbs">0</div>
-                    <div class="nutrition-label">углеводы</div>
+                <div style="flex:1; background:linear-gradient(135deg, #FFF5EE 0%, #FFF8E1 100%); padding:10px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:16px; font-weight:700; color:#F57C00;" id="productDetailCarbs">0</div>
+                    <div style="font-size:10px; color:#666;">угл</div>
                 </div>
-                <div class="nutrition-box">
-                    <div class="nutrition-value" id="productDetailFat">0</div>
-                    <div class="nutrition-label">жиры</div>
+                <div style="flex:1; background:linear-gradient(135deg, #F5F5F5 0%, #FAFAFA 100%); padding:10px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:16px; font-weight:700; color:#616161;" id="productDetailFat">0</div>
+                    <div style="font-size:10px; color:#666;">жир</div>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">Количество (грамм)</label>
-                <input type="number" class="form-input" id="productDetailGrams" value="100">
+            
+            <div style="margin-bottom:16px;">
+                <label id="productDetailGramsLabel" style="font-size:13px; font-weight:600; display:block; margin-bottom:8px; color:#666;">Количество (грамм)</label>
+                <input type="number" id="productDetailGrams" value="100" style="width:100%; padding:12px; font-size:18px; text-align:center; border:2px solid #e0e0e0; border-radius:8px; box-sizing:border-box;">
             </div>
-            <div class="product-nutrition-total" id="productNutritionTotal">
-                <div class="total-nutrition-row">
-                    <span>Итого за <span id="totalGrams">100</span>г:</span>
+            
+            <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#666;">Итого за <span id="totalGrams">100</span>г:</div>
+            <div style="display:flex; gap:6px; margin-bottom:20px;">
+                <div style="flex:1; background:linear-gradient(135deg, #F0FFF0 0%, #E8F5E9 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#2E7D32;" id="modalTotalCalories">0</div>
+                    <div style="font-size:10px; color:#666;">ккал</div>
                 </div>
-                <div class="total-nutrition-values">
-                    <strong><span id="modalTotalCalories">0</span> ккал</strong>
-                    <span>Б: <span id="modalTotalProtein">0</span>г</span>
-                    <span>У: <span id="modalTotalCarbs">0</span>г</span>
-                    <span>Ж: <span id="modalTotalFat">0</span>г</span>
+                <div style="flex:1; background:linear-gradient(135deg, #F0F8FF 0%, #E3F2FD 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#1565C0;" id="modalTotalProtein">0</div>
+                    <div style="font-size:10px; color:#666;">белок</div>
+                </div>
+                <div style="flex:1; background:linear-gradient(135deg, #FFF5EE 0%, #FFF8E1 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#F57C00;" id="modalTotalCarbs">0</div>
+                    <div style="font-size:10px; color:#666;">угл</div>
+                </div>
+                <div style="flex:1; background:linear-gradient(135deg, #F5F5F5 0%, #FAFAFA 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#616161;" id="modalTotalFat">0</div>
+                    <div style="font-size:10px; color:#854d0e;">жир</div>
                 </div>
             </div>
-            <button class="btn btn-primary" style="width: 100%;" id="addProductDetailBtn">Добавить в дневник</button>
+            
+            <div style="margin-bottom:16px;">
+                <label style="font-size:13px; font-weight:600; display:block; margin-bottom:8px; color:#666;">Прием пищи:</label>
+                <div class="meal-buttons" style="display:flex; gap:6px;">
+                    <button class="meal-btn active" data-meal="0" onclick="selectProductMeal(0)" style="flex:1; padding:8px 4px; border:2px solid #e0e0e0; background:white; border-radius:8px; font-size:13px; cursor:pointer;">Завтрак</button>
+                    <button class="meal-btn" data-meal="1" onclick="selectProductMeal(1)" style="flex:1; padding:8px 4px; border:2px solid #e0e0e0; background:white; border-radius:8px; font-size:13px; cursor:pointer;">Обед</button>
+                    <button class="meal-btn" data-meal="2" onclick="selectProductMeal(2)" style="flex:1; padding:8px 4px; border:2px solid #e0e0e0; background:white; border-radius:8px; font-size:13px; cursor:pointer;">Ужин</button>
+                    <button class="meal-btn" data-meal="3" onclick="selectProductMeal(3)" style="flex:1; padding:8px 4px; border:2px solid #e0e0e0; background:white; border-radius:8px; font-size:13px; cursor:pointer;">Перекус</button>
+                </div>
+            </div>
+            
+            <button onclick="addProductDetailToMeal()" style="width:100%; padding:14px; background:linear-gradient(135deg, #10b981, #059669); color:white; border:none; border-radius:8px; font-size:16px; font-weight:700; cursor:pointer;">Добавить в дневник</button>
         </div>
     </div>
 
     <!-- Recipe Detail Modal -->
-    <div class="modal-overlay recipe-detail-modal" id="recipeDetailModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title" id="recipeDetailName">Название рецепта</h2>
-                <button class="modal-close" id="closeRecipeDetailBtn">×</button>
-            </div>
-            <div class="recipe-detail-header" id="recipeDetailHeader">
-                <div class="recipe-detail-header-overlay">
-                    <div class="recipe-detail-tags" id="recipeDetailTags"></div>
-                </div>
-            </div>
+    <div id="recipeDetailModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center; overflow-y:auto;">
+        <div style="background:white; border-radius:12px; padding:24px; max-width:700px; width:90%; margin:40px auto; position:relative;">
+            <button id="closeRecipeDetailBtn" onclick="document.getElementById('recipeDetailModal').style.display='none'" style="position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; background:#f0f0f0; border-radius:50%; font-size:20px; cursor:pointer; z-index:10;">×</button>
+            <h2 id="recipeDetailName" style="font-size:22px; margin:0 0 16px 0;">Название рецепта</h2>
+            <div id="recipeDetailHeader" style="height:200px; background:linear-gradient(135deg, #10b981, #059669); border-radius:8px; margin-bottom:16px;"></div>
             <div class="recipe-detail-info">
                 <div class="recipe-detail-info-item">
                     <span>⏱️</span>
@@ -651,6 +662,31 @@
                     </div>
                 </div>
             </div>
+            
+            <div style="margin-bottom:16px;">
+                <label style="font-size:13px; font-weight:600; display:block; margin-bottom:8px; color:#666;">Количество порций</label>
+                <input type="number" id="recipeDetailPortions" value="1" min="1" style="width:100%; padding:12px; font-size:18px; text-align:center; border:2px solid #e0e0e0; border-radius:8px; box-sizing:border-box;">
+            </div>
+            
+            <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:#666;">Итого:</div>
+            <div style="display:flex; gap:6px; margin-bottom:20px;">
+                <div style="flex:1; background:linear-gradient(135deg, #F0FFF0 0%, #E8F5E9 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#2E7D32;" id="recipeTotalCalories">0</div>
+                    <div style="font-size:10px; color:#666;">ккал</div>
+                </div>
+                <div style="flex:1; background:linear-gradient(135deg, #F0F8FF 0%, #E3F2FD 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#1565C0;" id="recipeTotalProtein">0</div>
+                    <div style="font-size:10px; color:#666;">белки</div>
+                </div>
+                <div style="flex:1; background:linear-gradient(135deg, #FFF5EE 0%, #FFF8E1 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#F57C00;" id="recipeTotalCarbs">0</div>
+                    <div style="font-size:10px; color:#666;">углеводы</div>
+                </div>
+                <div style="flex:1; background:linear-gradient(135deg, #F5F5F5 0%, #FAFAFA 100%); padding:12px 6px; border-radius:4px; text-align:center;">
+                    <div style="font-size:18px; font-weight:700; color:#616161;" id="recipeTotalFat">0</div>
+                    <div style="font-size:10px; color:#666;">жиры</div>
+                </div>
+            </div>
             <div class="recipe-detail-section">
                 <div class="recipe-detail-section-title">Ингредиенты</div>
                 <div class="recipe-detail-ingredients" id="recipeDetailIngredients"></div>
@@ -658,6 +694,15 @@
             <div class="recipe-detail-section">
                 <div class="recipe-detail-section-title">Приготовление</div>
                 <div class="recipe-detail-instructions" id="recipeDetailInstructions"></div>
+            </div>
+            <div class="recipe-meal-selector">
+                <label class="form-label">Добавить в:</label>
+                <div class="meal-buttons recipe-meal-buttons">
+                    <button class="meal-btn active" data-meal="0">Завтрак</button>
+                    <button class="meal-btn" data-meal="1">Обед</button>
+                    <button class="meal-btn" data-meal="2">Ужин</button>
+                    <button class="meal-btn" data-meal="3">Перекус</button>
+                </div>
             </div>
             <button class="btn btn-primary recipe-detail-add-btn" id="addRecipeDetailBtn">Добавить в дневник</button>
         </div>

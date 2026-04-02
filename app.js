@@ -61,6 +61,27 @@ function openRecipeDetailModal(recipeId) {
     document.getElementById('recipeDetailFat').textContent = Math.round(nutrition.fat || 0);
     document.getElementById('recipeDetailInstructions').textContent = recipe.instructions || 'Нет инструкции';
     
+    const perServing = { 
+        calories: nutrition.calories || 0, 
+        protein: nutrition.protein || 0, 
+        carbs: nutrition.carbs || 0, 
+        fat: nutrition.fat || 0 
+    };
+    
+    document.getElementById('recipeDetailPortions').value = 1;
+    document.getElementById('recipeTotalCalories').textContent = Math.round(perServing.calories);
+    document.getElementById('recipeTotalProtein').textContent = Math.round(perServing.protein);
+    document.getElementById('recipeTotalCarbs').textContent = Math.round(perServing.carbs);
+    document.getElementById('recipeTotalFat').textContent = Math.round(perServing.fat);
+    
+    document.getElementById('recipeDetailPortions').oninput = function() {
+        const portions = parseFloat(this.value) || 1;
+        document.getElementById('recipeTotalCalories').textContent = Math.round(perServing.calories * portions);
+        document.getElementById('recipeTotalProtein').textContent = Math.round(perServing.protein * portions);
+        document.getElementById('recipeTotalCarbs').textContent = Math.round(perServing.carbs * portions);
+        document.getElementById('recipeTotalFat').textContent = Math.round(perServing.fat * portions);
+    };
+    
     // Tags
     const dietLabels = { 1: 'Кето', 2: 'Веган', 4: 'Вегетарианское', 8: 'Безглютен', 32: 'Низкоуглеводное' };
     const tags = Object.entries(dietLabels)
@@ -91,11 +112,11 @@ function openRecipeDetailModal(recipeId) {
         header.style.backgroundImage = 'none';
     }
     
-    document.getElementById('recipeDetailModal').classList.add('active');
+    document.getElementById('recipeDetailModal').style.display = 'flex';
 }
 
 function closeRecipeDetailModal() {
-    document.getElementById('recipeDetailModal').classList.remove('active');
+    document.getElementById('recipeDetailModal').style.display = 'none';
     selectedRecipeDetail = null;
 }
 
@@ -103,21 +124,20 @@ function addRecipeDetailToMeal() {
     if (!selectedRecipeDetail) return;
     
     const nutrition = selectedRecipeDetail.totalNutrition || {};
-    const servings = selectedRecipeDetail.servings || 1;
+    const portions = parseFloat(document.getElementById('recipeDetailPortions').value) || 1;
     
     const entry = {
         productId: selectedRecipeDetail.id,
         productName: selectedRecipeDetail.name,
-        grams: 100 * servings,
-        calories: (nutrition.calories || 0) * servings,
-        protein: (nutrition.protein || 0) * servings,
-        carbs: (nutrition.carbs || 0) * servings,
-        fat: (nutrition.fat || 0) * servings
+        grams: `${portions} порц.`,
+        calories: (nutrition.calories || 0) * portions,
+        protein: (nutrition.protein || 0) * portions,
+        carbs: (nutrition.carbs || 0) * portions,
+        fat: (nutrition.fat || 0) * portions
     };
     
-    const mealType = currentMealType || 0;
-    if (!meals[mealType]) meals[mealType] = [];
-    meals[mealType].push(entry);
+    if (!meals[currentMealType]) meals[currentMealType] = [];
+    meals[currentMealType].push(entry);
     
     dailyData.calories += entry.calories;
     dailyData.protein += entry.protein;
@@ -126,7 +146,7 @@ function addRecipeDetailToMeal() {
     
     updateStats();
     renderMeals();
-    closeRecipeDetailModal();
+    document.getElementById('recipeDetailModal').style.display = 'none';
     showToast(`"${selectedRecipeDetail.name}" добавлен в дневник`);
 }
 
@@ -240,13 +260,48 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('productSearch').addEventListener('input', searchProducts);
     document.getElementById('addFoodBtn').addEventListener('click', addFoodToMeal);
     
-    // Product Detail Modal
-    document.getElementById('closeProductDetailBtn').addEventListener('click', closeProductDetailModal);
-    document.getElementById('addProductDetailBtn').addEventListener('click', addProductDetailToMeal);
+    // Product Detail Modal - with null check
+    const closeProductDetailBtn = document.getElementById('closeProductDetailBtn');
+    if (closeProductDetailBtn) closeProductDetailBtn.addEventListener('click', () => document.getElementById('productDetailModal').style.display = 'none');
+    
+    const productDetailModal = document.getElementById('productDetailModal');
+    if (productDetailModal) {
+        productDetailModal.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    }
+    
+    const recipeDetailModal = document.getElementById('recipeDetailModal');
+    if (recipeDetailModal) {
+        recipeDetailModal.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    }
+    
+    // Meal button selectors (products modal)
+    document.querySelectorAll('#productDetailModal .meal-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#productDetailModal .meal-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentMealType = parseInt(this.dataset.meal);
+        });
+    });
+    
+    // Meal button selectors (recipes modal)
+    document.querySelectorAll('#recipeDetailModal .meal-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#recipeDetailModal .meal-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentMealType = parseInt(this.dataset.meal);
+        });
+    });
     
     // Recipe Detail Modal
-    document.getElementById('closeRecipeDetailBtn').addEventListener('click', closeRecipeDetailModal);
-    document.getElementById('addRecipeDetailBtn').addEventListener('click', addRecipeDetailToMeal);
+    const closeRecipeDetailBtn = document.getElementById('closeRecipeDetailBtn');
+    if (closeRecipeDetailBtn) closeRecipeDetailBtn.addEventListener('click', closeRecipeDetailModal);
+    
+    const addRecipeDetailBtn = document.getElementById('addRecipeDetailBtn');
+    if (addRecipeDetailBtn) addRecipeDetailBtn.addEventListener('click', addRecipeDetailToMeal);
 });
 
 // Global event delegation for dynamic elements
@@ -373,14 +428,14 @@ function openMealModal(mealType) {
     currentMealType = mealType;
     const mealNames = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
     document.getElementById('modalMealTitle').textContent = 'Добавить в ' + mealNames[mealType];
-    document.getElementById('foodModal').classList.add('active');
+    document.getElementById('foodModal').style.display = 'flex';
     document.getElementById('productSearch').value = '';
     document.getElementById('selectedProduct').style.display = 'none';
     loadProducts('');
 }
 
 function closeModal() {
-    document.getElementById('foodModal').classList.remove('active');
+    document.getElementById('foodModal').style.display = 'none';
 }
 
 const productsDatabase = [
@@ -515,13 +570,20 @@ function renderProducts(products) {
 }
 
 function selectProduct(product) {
+    const isRecipe = !!product.recipe;
+    const servings = product.servings || 1;
+    const defaultGrams = product.defaultGrams || 100;
+    
     selectedProductDetail = {
         name: product.name || product.Name || 'Без названия',
         calories: product.caloriesPer100g || product.CaloriesPer100g || 0,
         protein: product.proteinPer100g || product.ProteinPer100g || 0,
         carbs: product.carbsPer100g || product.CarbsPer100g || 0,
         fat: product.fatPer100g || product.FatPer100g || 0,
-        category: product.category || product.Category || ''
+        category: product.category || product.Category || '',
+        isRecipe: isRecipe,
+        servings: servings,
+        defaultGrams: defaultGrams
     };
     
     const name = selectedProductDetail.name;
@@ -537,15 +599,30 @@ function selectProduct(product) {
     document.getElementById('productDetailProtein').textContent = protein;
     document.getElementById('productDetailCarbs').textContent = carbs;
     document.getElementById('productDetailFat').textContent = fat;
-    document.getElementById('productDetailGrams').value = 100;
-    document.getElementById('totalGrams').textContent = 100;
-    document.getElementById('modalTotalCalories').textContent = calories;
-    document.getElementById('modalTotalProtein').textContent = protein;
-    document.getElementById('modalTotalCarbs').textContent = carbs;
-    document.getElementById('modalTotalFat').textContent = fat;
+    
+    // Update labels based on type
+    if (isRecipe) {
+        document.getElementById('nutritionPer100Label').textContent = `На 1 порцию (${servings} порц.):`;
+        document.getElementById('quantityLabel').textContent = 'Количество порций:';
+        document.getElementById('productDetailGrams').value = 1;
+        document.getElementById('totalGrams').textContent = 1;
+    } else {
+        document.getElementById('nutritionPer100Label').textContent = 'На 100г:';
+        document.getElementById('quantityLabel').textContent = 'Количество (грамм):';
+        document.getElementById('productDetailGrams').value = defaultGrams;
+        document.getElementById('totalGrams').textContent = defaultGrams;
+    }
+    
+    updateProductDetailNutrition();
     
     const detailImg = document.getElementById('productDetailImage');
     detailImg.style.display = 'none';
+    
+    // Reset meal buttons to active first one
+    document.querySelectorAll('.meal-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx === 0);
+    });
+    currentMealType = 0;
     
     document.getElementById('productDetailModal').classList.add('active');
 }
@@ -1454,7 +1531,8 @@ const allFoods = [
     ...recipesDatabase.map(r => ({
         id: r.id + 1000,
         name: r.name,
-        category: r.cuisine || 'Блюдо',
+        category: 'Блюда',
+        cuisine: r.cuisine || '',
         caloriesPer100g: r.totalNutrition?.calories || 0,
         proteinPer100g: r.totalNutrition?.protein || 0,
         carbsPer100g: r.totalNutrition?.carbs || 0,
@@ -1494,19 +1572,19 @@ function renderRecipes(recipesToRender) {
                     <span>🍽️ ${r.servings || 1} порц.</span>
                 </div>
                 <div class="recipe-nutrition">
-                    <div class="nutrition-item">
+                    <div class="nutrition-item calories">
                         <div class="nutrition-value">${Math.round(calories)}</div>
                         <div class="nutrition-label">ккал</div>
                     </div>
-                    <div class="nutrition-item">
+                    <div class="nutrition-item protein">
                         <div class="nutrition-value">${Math.round(protein)}</div>
                         <div class="nutrition-label">белок</div>
                     </div>
-                    <div class="nutrition-item">
+                    <div class="nutrition-item carbs">
                         <div class="nutrition-value">${Math.round(carbs)}</div>
                         <div class="nutrition-label">угл</div>
                     </div>
-                    <div class="nutrition-item">
+                    <div class="nutrition-item fat">
                         <div class="nutrition-value">${Math.round(fat)}</div>
                         <div class="nutrition-label">жир</div>
                     </div>
@@ -1565,7 +1643,7 @@ function renderProductsPage(productsToRender) {
         const bgImage = imageUrl ? `url('${imageUrl}')` : `linear-gradient(135deg, var(--primary), var(--secondary))`;
         
         return `
-        <div class="recipe-card" onclick='selectProduct(${productJson})'>
+        <div class="recipe-card" onclick="openProductDetailModal('${name.replace(/'/g, "\\'")}', ${calories}, ${protein}, ${carbs}, ${fat}, '${category.replace(/'/g, "\\'")}')">
             <div class="recipe-image" style="background-image: ${bgImage}"></div>
             <div class="recipe-content">
                 <h3 class="recipe-name">${name}</h3>
@@ -1574,24 +1652,23 @@ function renderProductsPage(productsToRender) {
                     <span>⚖️ ${p.defaultGrams || 100}г</span>
                 </div>
                 <div class="recipe-nutrition">
-                    <div class="nutrition-item">
+                    <div class="nutrition-item calories">
                         <div class="nutrition-value">${Math.round(calories)}</div>
                         <div class="nutrition-label">ккал</div>
                     </div>
-                    <div class="nutrition-item">
+                    <div class="nutrition-item protein">
                         <div class="nutrition-value">${Math.round(protein)}</div>
                         <div class="nutrition-label">белок</div>
                     </div>
-                    <div class="nutrition-item">
+                    <div class="nutrition-item carbs">
                         <div class="nutrition-value">${Math.round(carbs)}</div>
                         <div class="nutrition-label">угл</div>
                     </div>
-                    <div class="nutrition-item">
+                    <div class="nutrition-item fat">
                         <div class="nutrition-value">${Math.round(fat)}</div>
                         <div class="nutrition-label">жир</div>
                     </div>
                 </div>
-                <button class="btn-add-product" onclick="event.stopPropagation(); openProductDetailModal('${name.replace(/'/g, "\\'")}', ${calories}, ${protein}, ${carbs}, ${fat}, '${category.replace(/'/g, "\\'")}')">+ Добавить</button>
             </div>
         </div>
         `;
@@ -1599,25 +1676,60 @@ function renderProductsPage(productsToRender) {
 }
 
 function openProductDetailModal(name, calories, protein, carbs, fat, category) {
-    selectedProductDetail = { name, calories, protein, carbs, fat, category };
-    
     document.getElementById('productDetailName').textContent = name;
     document.getElementById('productDetailCategory').textContent = category;
     document.getElementById('productDetailCalories').textContent = calories;
     document.getElementById('productDetailProtein').textContent = protein;
     document.getElementById('productDetailCarbs').textContent = carbs;
     document.getElementById('productDetailFat').textContent = fat;
-    document.getElementById('productDetailGrams').value = 100;
-    document.getElementById('totalGrams').textContent = 100;
-    document.getElementById('modalTotalCalories').textContent = calories;
-    document.getElementById('modalTotalProtein').textContent = protein;
-    document.getElementById('modalTotalCarbs').textContent = carbs;
-    document.getElementById('modalTotalFat').textContent = fat;
     
-    const detailImg = document.getElementById('productDetailImage');
-    if (detailImg) detailImg.style.display = 'none';
+    selectedProductDetail = {
+        name: name,
+        calories: calories,
+        protein: protein,
+        carbs: carbs,
+        fat: fat,
+        category: category,
+        isRecipe: category === 'Блюда'
+    };
     
-    document.getElementById('productDetailModal').classList.add('active');
+    const isRecipe = category === 'Блюда';
+    document.getElementById('productDetailGramsLabel').textContent = isRecipe ? 'Количество порций' : 'Количество (грамм)';
+    document.getElementById('productDetailGrams').value = isRecipe ? 1 : 100;
+    document.getElementById('totalGrams').textContent = isRecipe ? '1' : '100';
+    
+    if (isRecipe) {
+        document.getElementById('modalTotalCalories').textContent = calories;
+        document.getElementById('modalTotalProtein').textContent = protein;
+        document.getElementById('modalTotalCarbs').textContent = carbs;
+        document.getElementById('modalTotalFat').textContent = fat;
+    } else {
+        document.getElementById('modalTotalCalories').textContent = calories;
+        document.getElementById('modalTotalProtein').textContent = protein;
+        document.getElementById('modalTotalCarbs').textContent = carbs;
+        document.getElementById('modalTotalFat').textContent = fat;
+    }
+    document.getElementById('productDetailModal').style.display = 'flex';
+    
+    selectProductMeal(0);
+    
+    document.getElementById('productDetailGrams').oninput = function() {
+        const value = parseFloat(this.value) || 1;
+        document.getElementById('totalGrams').textContent = value;
+        
+        if (isRecipe) {
+            document.getElementById('modalTotalCalories').textContent = Math.round(calories * value);
+            document.getElementById('modalTotalProtein').textContent = Math.round(protein * value);
+            document.getElementById('modalTotalCarbs').textContent = Math.round(carbs * value);
+            document.getElementById('modalTotalFat').textContent = Math.round(fat * value);
+        } else {
+            const ratio = value / 100;
+            document.getElementById('modalTotalCalories').textContent = Math.round(calories * ratio);
+            document.getElementById('modalTotalProtein').textContent = Math.round(protein * ratio);
+            document.getElementById('modalTotalCarbs').textContent = Math.round(carbs * ratio);
+            document.getElementById('modalTotalFat').textContent = Math.round(fat * ratio);
+        }
+    };
 }
 
 function filterProducts(category, btn) {
@@ -1641,9 +1753,26 @@ function searchProductsPage() {
 }
 
 let selectedProductDetail = null;
+let selectedProductMeal = 0;
+
+function selectProductMeal(mealIndex) {
+    selectedProductMeal = mealIndex;
+    const buttons = document.querySelectorAll('#productDetailModal .meal-btn');
+    buttons.forEach((btn, idx) => {
+        if (idx === mealIndex) {
+            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#10b981';
+        } else {
+            btn.style.background = 'white';
+            btn.style.color = '#333';
+            btn.style.borderColor = '#e0e0e0';
+        }
+    });
+}
 
 function closeProductDetailModal() {
-    document.getElementById('productDetailModal').classList.remove('active');
+    document.getElementById('productDetailModal').style.display = 'none';
 }
 
 function updateProductDetailNutrition() {
@@ -1652,8 +1781,17 @@ function updateProductDetailNutrition() {
     const gramsInput = document.getElementById('productDetailGrams');
     if (!gramsInput) return;
     
-    const grams = parseFloat(gramsInput.value) || 100;
-    const ratio = grams / 100;
+    let grams = parseFloat(gramsInput.value) || 1;
+    let ratio;
+    
+    if (selectedProductDetail.isRecipe) {
+        // For recipes, gramsInput represents portions
+        const portions = grams;
+        ratio = portions;
+        grams = selectedProductDetail.defaultGrams * portions;
+    } else {
+        ratio = grams / 100;
+    }
     
     document.getElementById('totalGrams').textContent = grams;
     document.getElementById('modalTotalCalories').textContent = Math.round(selectedProductDetail.calories * ratio);
@@ -1665,20 +1803,30 @@ function updateProductDetailNutrition() {
 function addProductDetailToMeal() {
     if (!selectedProductDetail) return;
     
-    const grams = parseFloat(document.getElementById('productDetailGrams').value) || 100;
-    const ratio = grams / 100;
+    let grams = parseFloat(document.getElementById('productDetailGrams').value) || 1;
+    let ratio;
+    let gramsDisplay;
+    
+    if (selectedProductDetail.isRecipe) {
+        const portions = grams;
+        ratio = portions;
+        gramsDisplay = `${portions} порц.`;
+    } else {
+        ratio = grams / 100;
+        gramsDisplay = `${grams}г`;
+    }
     
     const entry = {
         productId: Date.now(),
         productName: selectedProductDetail.name,
-        grams: grams,
+        grams: gramsDisplay,
         calories: selectedProductDetail.calories * ratio,
         protein: selectedProductDetail.protein * ratio,
         carbs: selectedProductDetail.carbs * ratio,
         fat: selectedProductDetail.fat * ratio
     };
     
-    const mealType = currentMealType || 0;
+    const mealType = selectedProductMeal || 0;
     if (!meals[mealType]) meals[mealType] = [];
     meals[mealType].push(entry);
     
