@@ -556,15 +556,28 @@ const productsDatabase = [
 ];
 
 
+let currentProductFilter = 'all';
+
 function loadProducts(query) {
     let filtered = allFoods;
     
+    if (currentProductFilter !== 'all') {
+        filtered = filtered.filter(f => f.category === currentProductFilter);
+    }
+    
     if (query && query.trim() !== '') {
         const searchTerm = query.toLowerCase();
-        filtered = allFoods.filter(f => f.name.toLowerCase().includes(searchTerm));
+        filtered = filtered.filter(f => f.name.toLowerCase().includes(searchTerm));
     }
     
     renderProducts(filtered);
+}
+
+function filterProductsModal(category, btn) {
+    currentProductFilter = category;
+    document.querySelectorAll('#foodModal .filter-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    loadProducts(document.getElementById('productSearch').value);
 }
 
 function renderProducts(products) {

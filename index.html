@@ -222,6 +222,7 @@
                     <button class="filter-pill" data-category="Молочное">Молочное</button>
                     <button class="filter-pill" data-category="Крупы">Крупы</button>
                     <button class="filter-pill" data-category="Овощи">Овощи</button>
+                    <button class="filter-pill" data-category="Фрукты">Фрукты</button>
                     <button class="filter-pill" data-category="Блюда">Блюда</button>
                 </div>
 
@@ -525,6 +526,16 @@
             <div class="modal-header">
                 <h2 class="modal-title" id="modalMealTitle">Добавить в завтрак</h2>
                 <button class="modal-close" id="closeModalBtn" onclick="closeModal()">×</button>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                <button class="filter-pill active" data-category="all" onclick="filterProductsModal('all', this)" style="padding: 8px 16px; font-size: 12px;">Все</button>
+                <button class="filter-pill" data-category="Мясо" onclick="filterProductsModal('Мясо', this)" style="padding: 8px 16px; font-size: 12px;">Мясо</button>
+                <button class="filter-pill" data-category="Рыба" onclick="filterProductsModal('Рыба', this)" style="padding: 8px 16px; font-size: 12px;">Рыба</button>
+                <button class="filter-pill" data-category="Молочное" onclick="filterProductsModal('Молочное', this)" style="padding: 8px 16px; font-size: 12px;">Молочное</button>
+                <button class="filter-pill" data-category="Крупы" onclick="filterProductsModal('Крупы', this)" style="padding: 8px 16px; font-size: 12px;">Крупы</button>
+                <button class="filter-pill" data-category="Овощи" onclick="filterProductsModal('Овощи', this)" style="padding: 8px 16px; font-size: 12px;">Овощи</button>
+                <button class="filter-pill" data-category="Фрукты" onclick="filterProductsModal('Фрукты', this)" style="padding: 8px 16px; font-size: 12px;">Фрукты</button>
+                <button class="filter-pill" data-category="Блюда" onclick="filterProductsModal('Блюда', this)" style="padding: 8px 16px; font-size: 12px;">Блюда</button>
             </div>
             <div class="search-box">
                 <input type="text" class="search-input" placeholder="Поиск продуктов..." id="productSearch">
