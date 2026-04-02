@@ -7,40 +7,39 @@ let selectedRecipeDetail = null;
 let userGoals = { calories: 2000, protein: 100, carbs: 250, fat: 65, water: 2000 };
 let dailyData = { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 };
 let meals = { 0: [], 1: [], 2: [], 3: [] };
-let recipes = [];
-let selectedActivityType = null;
-let selectedDietitianId = 1;
-let waterIntake = 0;
-let weightChart = null;
-let waterChart = null;
-let waterHistory = [];
-let caloriesChart = null;
+let mealsByDate = {};
 
-const API_BASE = 'http://localhost:5001/api';
+function getDateKey(date) {
+    return date.toISOString().split('T')[0];
+}
 
-// Toast notification function
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+function loadDailyData() {
+    const dateKey = getDateKey(currentDate);
+    if (mealsByDate[dateKey]) {
+        meals = mealsByDate[dateKey];
+    } else {
+        meals = { 0: [], 1: [], 2: [], 3: [] };
+    }
     
-    const icons = {
-        success: '✓',
-        error: '✕',
-        warning: '⚠'
-    };
+    dailyData = { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 };
     
-    toast.innerHTML = `
-        <span class="toast-icon">${icons[type]}</span>
-        <span class="toast-message">${message}</span>
-    `;
+    for (let i = 0; i < 4; i++) {
+        const dayMeals = meals[i] || [];
+        for (let entry of dayMeals) {
+            dailyData.calories += entry.calories || 0;
+            dailyData.protein += entry.protein || 0;
+            dailyData.carbs += entry.carbs || 0;
+            dailyData.fat += entry.fat || 0;
+        }
+    }
     
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.classList.add('hiding');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    updateStats();
+    renderMeals();
+}
+
+function saveCurrentDayData() {
+    const dateKey = getDateKey(currentDate);
+    mealsByDate[dateKey] = JSON.parse(JSON.stringify(meals));
 }
 
 // Recipe Detail Modal
@@ -362,21 +361,37 @@ function toggleSidebar() {
 function updateDateDisplay() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('ru-RU', options);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+    
+    const nextBtn = document.getElementById('nextDateBtn');
+    if (currentDate.getTime() >= today.getTime()) {
+        nextBtn.style.opacity = '0.3';
+        nextBtn.style.pointerEvents = 'none';
+    } else {
+        nextBtn.style.opacity = '1';
+        nextBtn.style.pointerEvents = 'auto';
+    }
+    currentDate.setHours(0, 0, 0, 0);
 }
 
 function changeDate(delta) {
-    currentDate.setDate(currentDate.getDate() + delta);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + delta);
+    
+    if (newDate > today) return;
+    
+    saveCurrentDayData();
+    currentDate = newDate;
     updateDateDisplay();
     loadDailyData();
 }
 
 // API Functions
-function loadDailyData() {
-    // Use local data - meals are stored in memory
-    updateStats();
-    renderMeals();
-}
-
 function updateStats() {
     document.getElementById('totalCalories').textContent = Math.round(dailyData.calories);
     document.getElementById('totalProtein').textContent = Math.round(dailyData.protein);
@@ -412,7 +427,7 @@ function renderMeals() {
                     ${mealEntries.slice(0, 3).map(e => `
                         <div class="meal-item">
                             <span>${e.productName}</span>
-                            <span>${Math.round(e.grams)}г</span>
+                            <span>${e.grams}</span>
                         </div>
                     `).join('')}
                     ${mealEntries.length > 3 ? `<div class="meal-item">+${mealEntries.length - 3} ещё...</div>` : ''}
@@ -428,14 +443,20 @@ function openMealModal(mealType) {
     currentMealType = mealType;
     const mealNames = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
     document.getElementById('modalMealTitle').textContent = 'Добавить в ' + mealNames[mealType];
-    document.getElementById('foodModal').style.display = 'flex';
+    const modal = document.getElementById('foodModal');
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+    modal.style.visibility = 'visible';
     document.getElementById('productSearch').value = '';
     document.getElementById('selectedProduct').style.display = 'none';
     loadProducts('');
 }
 
 function closeModal() {
-    document.getElementById('foodModal').style.display = 'none';
+    const modal = document.getElementById('foodModal');
+    modal.style.display = 'none';
+    modal.style.opacity = '0';
+    modal.style.visibility = 'hidden';
 }
 
 const productsDatabase = [
@@ -553,10 +574,12 @@ function renderProducts(products) {
         const protein = p.proteinPer100g || p.ProteinPer100g || 0;
         const carbs = p.carbsPer100g || p.CarbsPer100g || 0;
         const fat = p.fatPer100g || p.FatPer100g || 0;
-        const grams = p.defaultGrams || p.DefaultGrams || 100;
+        const isRecipe = !!p.recipe;
+        const defaultValue = isRecipe ? 1 : 100;
+        const defaultGrams = p.defaultGrams || 100;
         
         return `
-        <div class="product-item" onclick="selectProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+        <div class="product-item" onclick="addProductDirectly(${p.id}, ${calories}, ${protein}, ${carbs}, ${fat}, ${isRecipe}, ${defaultValue})">
             <div class="product-name">${name}</div>
             <div class="product-nutrition">
                 <span>${Math.round(calories)} ккал</span>
@@ -569,7 +592,47 @@ function renderProducts(products) {
     }).join('');
 }
 
+function addProductDirectly(id, calories, protein, carbs, fat, isRecipe, defaultValue) {
+    const name = allFoods.find(f => f.id === id)?.name || 'Без названия';
+    
+    let ratio, gramsDisplay;
+    if (isRecipe) {
+        ratio = defaultValue;
+        gramsDisplay = `${defaultValue} порц.`;
+    } else {
+        ratio = defaultValue / 100;
+        gramsDisplay = `${defaultValue}г`;
+    }
+    
+    const entry = {
+        productId: id,
+        productName: name,
+        grams: gramsDisplay,
+        calories: calories * ratio,
+        protein: protein * ratio,
+        carbs: carbs * ratio,
+        fat: fat * ratio
+    };
+    
+    if (!meals[currentMealType]) meals[currentMealType] = [];
+    meals[currentMealType].push(entry);
+    
+    dailyData.calories += entry.calories;
+    dailyData.protein += entry.protein;
+    dailyData.carbs += entry.carbs;
+    dailyData.fat += entry.fat;
+    
+    saveCurrentDayData();
+    updateStats();
+    renderMeals();
+    closeModal();
+    showToast('"' + name + '" добавлен в дневник');
+}
+
 function selectProduct(product) {
+    const nameEl = document.getElementById('productDetailName');
+    if (!nameEl) return;
+    
     const isRecipe = !!product.recipe;
     const servings = product.servings || 1;
     const defaultGrams = product.defaultGrams || 100;
