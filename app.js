@@ -84,12 +84,19 @@ function openRecipeDetailModal(recipeId) {
         
         if (ingredientList.length > 0) {
             const scaledIngredients = ingredientList.map(i => {
-                const match = i.match(/([\d.]+|[\d]+\/[\d]+)\s*(г|кг|шт|ml|мл|ложка|ложки|ложек)?/i);
+                const match = i.match(/([\d.]+|[\d]+\/[\d]+)\s*(г|кг|шт|ml|мл|ложка|ложки|ложек|зубчик|зубчика|зубчиков)?/i);
                 if (match) {
                     let amount = eval(match[1]);
+                    if (isNaN(amount)) return '• ' + i;
                     const unit = match[2] || 'шт';
-                    const newAmount = Math.round(amount * scale * 10) / 10;
-                    return '• ' + i.replace(/([\d.]+|[\d]+\/[\d]+)\s*(г|кг|шт|ml|мл|ложка|ложки|ложек)?/i, newAmount + ' ' + unit);
+                    let newAmount = amount * scale;
+                    if (newAmount < 1 && newAmount > 0) {
+                        newAmount = Math.round(newAmount * 100) / 100;
+                    } else {
+                        newAmount = Math.round(newAmount * 10) / 10;
+                    }
+                    const formattedAmount = Number.isInteger(newAmount) ? newAmount : newAmount.toFixed(1).replace(/\.0$/, '');
+                    return '• ' + i.replace(/([\d.]+|[\d]+\/[\d]+)\s*(г|кг|шт|ml|мл|ложка|ложки|ложек|зубчик|зубчика|зубчиков)?/i, formattedAmount + ' ' + unit);
                 }
                 return '• ' + i;
             });
