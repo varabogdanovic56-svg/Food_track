@@ -67,19 +67,51 @@ function openRecipeDetailModal(recipeId) {
         fat: nutrition.fat || 0 
     };
     
-    document.getElementById('recipeDetailPortions').value = 1;
-    document.getElementById('recipeTotalCalories').textContent = Math.round(perServing.calories);
-    document.getElementById('recipeTotalProtein').textContent = Math.round(perServing.protein);
-    document.getElementById('recipeTotalCarbs').textContent = Math.round(perServing.carbs);
-    document.getElementById('recipeTotalFat').textContent = Math.round(perServing.fat);
+    // Parse ingredients
+    let ingredientList = [];
+    if (recipe.ingredients) {
+        ingredientList = recipe.ingredients.split(',').map(i => i.trim());
+    }
     
-    document.getElementById('recipeDetailPortions').oninput = function() {
-        const portions = parseFloat(this.value) || 1;
-        document.getElementById('recipeTotalCalories').textContent = Math.round(perServing.calories * portions);
-        document.getElementById('recipeTotalProtein').textContent = Math.round(perServing.protein * portions);
-        document.getElementById('recipeTotalCarbs').textContent = Math.round(perServing.carbs * portions);
-        document.getElementById('recipeTotalFat').textContent = Math.round(perServing.fat * portions);
-    };
+    const originalServings = recipe.servings || 1;
+    
+    function updateRecipeData(portions) {
+        const scale = portions / originalServings;
+        document.getElementById('recipeDetailCalories').textContent = Math.round(perServing.calories * scale);
+        document.getElementById('recipeDetailProtein').textContent = Math.round(perServing.protein * scale);
+        document.getElementById('recipeDetailCarbs').textContent = Math.round(perServing.carbs * scale);
+        document.getElementById('recipeDetailFat').textContent = Math.round(perServing.fat * scale);
+        
+        if (ingredientList.length > 0) {
+            const scaledIngredients = ingredientList.map(i => {
+                const match = i.match(/([\d.]+|[\d]+\/[\d]+)\s*(г|кг|шт|ml|мл|ложка|ложки|ложек)?/i);
+                if (match) {
+                    let amount = eval(match[1]);
+                    const unit = match[2] || 'шт';
+                    const newAmount = Math.round(amount * scale * 10) / 10;
+                    return '• ' + i.replace(/([\d.]+|[\d]+\/[\d]+)\s*(г|кг|шт|ml|мл|ложка|ложки|ложек)?/i, newAmount + ' ' + unit);
+                }
+                return '• ' + i;
+            });
+            document.getElementById('recipeDetailIngredients').innerHTML = scaledIngredients.map(i => 
+                `<div class="recipe-detail-ingredient">${i}</div>`
+            ).join('');
+        }
+    }
+    
+    document.getElementById('recipeDetailPortions').value = originalServings;
+    updateRecipeData(originalServings);
+    
+    const portionsInput = document.getElementById('recipeDetailPortions');
+    if (portionsInput) {
+        portionsInput.addEventListener('input', function() {
+            console.log('Input changed:', this.value);
+            const portions = parseFloat(this.value) || 1;
+            updateRecipeData(portions);
+        });
+    }
+    
+    document.getElementById('recipeDetailModal').style.display = 'flex';
     
     // Tags
     const dietLabels = { 1: 'Кето', 2: 'Веган', 4: 'Вегетарианское', 8: 'Безглютен', 32: 'Низкоуглеводное' };
@@ -87,17 +119,8 @@ function openRecipeDetailModal(recipeId) {
         .filter(([k, v]) => (recipe.dietTypes & parseInt(k)) === parseInt(k))
         .map(([k, v]) => `<span class="recipe-detail-tag">${v}</span>`)
         .join('');
-    document.getElementById('recipeDetailTags').innerHTML = tags;
-    
-    // Ingredients
-    if (recipe.ingredients) {
-        const ingredientList = recipe.ingredients.split(',').map(i => i.trim());
-        document.getElementById('recipeDetailIngredients').innerHTML = ingredientList.map(i => 
-            `<div class="recipe-detail-ingredient">• ${i}</div>`
-        ).join('');
-    } else {
-        document.getElementById('recipeDetailIngredients').innerHTML = '<div>Нет данных об ингредиентах</div>';
-    }
+    const tagsEl = document.getElementById('recipeDetailTags');
+    if (tagsEl) tagsEl.innerHTML = tags;
     
     // Image
     const header = document.getElementById('recipeDetailHeader');
@@ -319,17 +342,33 @@ document.addEventListener('change', function(e) {
 // Navigation
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        link.style.background = '';
+        link.style.color = '';
+    });
     
     const page = document.getElementById('page-' + pageId);
-    page.classList.add('active');
+    if (page) {
+        page.classList.add('active');
+        
+        page.style.animation = 'none';
+        page.offsetHeight;
+        page.style.animation = null;
+    }
     
-    // Re-trigger animations
-    page.style.animation = 'none';
-    page.offsetHeight; // Trigger reflow
-    page.style.animation = null;
+    const activeLink = document.querySelector('.nav-link[data-page="' + pageId + '"]');
+    if (activeLink) {
+        activeLink.classList.add('active');
+        activeLink.style.background = 'linear-gradient(135deg, #10b981, #6366f1)';
+        activeLink.style.color = 'white';
+    }
     
-    document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+    if (pageId === 'diary') {
+        loadDailyData();
+    }
     
     if (pageId === 'chat') {
         loadChatMessages();
@@ -342,6 +381,13 @@ function showPage(pageId) {
     if (pageId === 'progress') {
         calculateWaterGoal();
         updateWaterChart();
+    }
+    
+    if (pageId === 'recipes') {
+        document.querySelectorAll('#page-recipes .filter-pill').forEach(p => {
+            p.classList.toggle('active', p.dataset.filter === 'all');
+        });
+        renderRecipes(recipes);
     }
     
     if (pageId === 'products') {
