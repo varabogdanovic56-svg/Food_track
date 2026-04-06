@@ -665,6 +665,18 @@ body {
     white-space: nowrap;
 }
 
+.editable-grams {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: var(--transition-fast);
+}
+
+.editable-grams:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--primary);
+}
+
 .delete-meal-item {
     opacity: 0;
     color: #ef4444;
@@ -1889,6 +1901,90 @@ body {
     visibility: visible;
 }
 
+/* Activity Modal - completely independent */
+#activityModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100000;
+}
+
+#activityModal.active {
+    display: block;
+}
+
+#activityModal .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 340px;
+    width: 85%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+#activityModal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+#activityModal .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+#activityModal .modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+#activityModal .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#activityModal .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#activityModal .form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+#activityModal .form-input {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+#activityModal .btn-primary {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .modal {
     background: white;
     border-radius: var(--radius);
@@ -2856,9 +2952,155 @@ body {
     animation: slideUp 0.5s ease-out;
 }
 
+/* Activity Cards Grid */
+.activity-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.activity-card-item {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 0;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    border: 2px solid transparent;
+    overflow: hidden;
+    aspect-ratio: 1;
+    min-height: 90px;
+}
+
+.activity-card-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.activity-card-item.selected {
+    border-color: var(--primary);
+}
+
+.activity-card-img {
+    height: 45%;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+}
+
+.activity-card-name {
+    font-weight: 600;
+    font-size: 12px;
+    margin: 4px 0 2px 0;
+    color: var(--text);
+}
+
+.activity-card-static {
+    font-size: 10px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.activity-card-duration {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 1px;
+}
+
+/* Energy Balance Card */
+
+@media (max-width: 600px) {
+    .activity-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .activity-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Energy Balance Card */
+.energy-balance-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.energy-balance-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.energy-balance-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.energy-stat {
+    flex: 1;
+    text-align: center;
+}
+
+.energy-stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.energy-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.energy-stat-value.positive {
+    color: #f59e0b;
+}
+
+.energy-stat-value.negative {
+    color: #10b981;
+}
+
+.energy-progress-container {
+    height: 24px;
+    background: var(--bg);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.energy-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 12px;
+    transition: width 0.3s;
+}
+
+.energy-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 8px;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes toastSlideUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 @keyframes slideUp {

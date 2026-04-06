@@ -9,6 +9,8 @@ let dailyData = { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 };
 let meals = { 0: [], 1: [], 2: [], 3: [] };
 let mealsByDate = {};
 let waterIntake = 0;
+let waterHistory = [];
+let activityHistory = [];
 
 function getDateKey(date) {
     return date.toISOString().split('T')[0];
@@ -202,6 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mealsByDate = JSON.parse(savedMeals);
     }
     
+    const savedActivity = localStorage.getItem('activityHistory');
+    if (savedActivity) {
+        activityHistory = JSON.parse(savedActivity);
+    }
+    
     // Hide loader and show app
     setTimeout(() => {
         document.getElementById('loader').classList.add('hidden');
@@ -215,6 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChatMessages();
     initCharts();
     loadWeightHistory();
+    loadWaterHistory();
+    updateCaloriesChart();
+    updateActivityChart();
+    updateActivityCards();
     document.getElementById('activityDate').valueAsDate = new Date();
     
     // Event Listeners
@@ -409,6 +420,12 @@ function showPage(pageId) {
     if (pageId === 'progress') {
         updateWaterRemaining();
         updateWaterChart();
+        updateCaloriesChart();
+        updateActivityChart();
+    }
+    
+    if (pageId === 'activity') {
+        updateActivityCards();
     }
     
     if (pageId === 'recipes') {
@@ -511,7 +528,10 @@ function renderMeals() {
                     ${mealEntries.slice(0, 10).map((e, idx) => `
                         <div class="meal-item">
                             <span class="meal-item-name">${e.productName}</span>
-                            <span class="meal-item-grams">${e.grams} <span class="delete-meal-item" onclick="event.stopPropagation(); deleteMealItem(${i}, ${idx})" title="Удалить">✕</span></span>
+                            <span class="meal-item-grams">
+                                <span class="editable-grams" onclick="event.stopPropagation(); promptNewGrams(${i}, ${idx}, '${e.grams}')">${e.grams}</span>
+                                <span class="delete-meal-item" onclick="event.stopPropagation(); deleteMealItem(${i}, ${idx})" title="Удалить">✕</span>
+                            </span>
                         </div>
                     `).join('')}
                     ${mealEntries.length > 10 ? `<div class="meal-item">+${mealEntries.length - 10} ещё...</div>` : ''}
@@ -543,53 +563,54 @@ function deleteMealItem(mealIdx, itemIdx) {
     renderMeals();
     showToast('Удалено: ' + entry.productName);
 }
+
+function promptNewGrams(mealIdx, itemIdx, currentGrams) {
+    const newGrams = prompt('Введите новое количество (например: 150г или 2 порции):', currentGrams);
+    if (newGrams && newGrams !== currentGrams) {
+        updateMealItemGrams(mealIdx, itemIdx, newGrams);
+    }
+}
+
+function updateMealItemGrams(mealIdx, itemIdx, newValue) {
     const entry = meals[mealIdx][itemIdx];
     if (!entry) return;
     
-    if (entry.isRecipe) {
-        const recipe = recipes.find(r => r.id === entry.productId);
-        if (recipe) {
-            openRecipeDetailModal(recipe.id, readonly);
-            return;
-        }
+    const oldCalories = entry.calories;
+    const oldProtein = entry.protein;
+    const oldCarbs = entry.carbs;
+    const oldFat = entry.fat;
+    
+    let newGrams = newValue;
+    let ratio = 1;
+    
+    if (newValue.includes('порт') || newValue.includes('порц')) {
+        const portions = parseFloat(newValue) || 1;
+        newGrams = portions == 1 ? '1 порция' : `${portions} порций`;
+        const match = entry.grams.toString().match(/(\d+)/);
+        const oldPortions = match ? parseInt(match[1]) : 1;
+        ratio = portions / oldPortions;
+    } else {
+        const grams = parseFloat(newValue) || 100;
+        newGrams = `${grams}г`;
+        const match = entry.grams.toString().match(/(\d+)/);
+        const oldGrams = match ? parseInt(match[1]) : 100;
+        ratio = grams / oldGrams;
     }
     
-    const product = allFoods.find(f => f.id === entry.productId);
-    if (product) {
-        openProductDetailModal(
-            product.name,
-            product.caloriesPer100g || 0,
-            product.proteinPer100g || 0,
-            product.carbsPer100g || 0,
-            product.fatPer100g || 0,
-            product.category || '',
-            readonly
-        );
-        return;
-    }
+    entry.grams = newGrams;
+    entry.calories = oldCalories * ratio;
+    entry.protein = oldProtein * ratio;
+    entry.carbs = oldCarbs * ratio;
+    entry.fat = oldFat * ratio;
     
-    document.getElementById('productDetailName').textContent = entry.productName;
-    document.getElementById('productDetailCategory').textContent = 'Добавлено вручную';
-    document.getElementById('productDetailCalories').textContent = Math.round(entry.calories);
-    document.getElementById('productDetailProtein').textContent = Math.round(entry.protein);
-    document.getElementById('productDetailCarbs').textContent = Math.round(entry.carbs);
-    document.getElementById('productDetailFat').textContent = Math.round(entry.fat);
+    dailyData.calories += entry.calories - oldCalories;
+    dailyData.protein += entry.protein - oldProtein;
+    dailyData.carbs += entry.carbs - oldCarbs;
+    dailyData.fat += entry.fat - oldFat;
     
-    document.getElementById('productDetailGramsLabel').textContent = 'Количество';
-    document.getElementById('productDetailGrams').value = entry.grams;
-    document.getElementById('totalGrams').textContent = entry.grams;
-    document.getElementById('modalTotalCalories').textContent = Math.round(entry.calories);
-    document.getElementById('modalTotalProtein').textContent = Math.round(entry.protein);
-    document.getElementById('modalTotalCarbs').textContent = Math.round(entry.carbs);
-    document.getElementById('modalTotalFat').textContent = Math.round(entry.fat);
-    
-    if (readonly) {
-        const addBtn = document.querySelector('#productDetailModal button[onclick="addProductDetailToMeal()"]');
-        if (addBtn) addBtn.style.display = 'none';
-        document.getElementById('productDetailGrams').disabled = true;
-    }
-    
-    document.getElementById('productDetailModal').style.display = 'flex';
+    saveCurrentDayData();
+    updateStats();
+}
 
 
 // Modal Functions
@@ -1799,8 +1820,8 @@ function renderRecipes(recipesToRender) {
             <div class="recipe-content">
                 <h3 class="recipe-name">${r.name}</h3>
                 <div class="recipe-info">
-                    <span>⏱️ ${(r.prepTimeMinutes || 0) + (r.cookTimeMinutes || 0)} мин</span>
-                    <span>🍽️ ${r.servings == 1 ? '1 порция' : (r.servings || 1) + ' порций'}</span>
+                    <span>${(r.prepTimeMinutes || 0) + (r.cookTimeMinutes || 0)} мин</span>
+                    <span>${r.servings == 1 ? '1 порция' : (r.servings || 1) + ' порций'}</span>
                 </div>
                 <div class="recipe-nutrition">
                     <div class="nutrition-item calories">
@@ -1907,6 +1928,13 @@ function renderProductsPage(productsToRender) {
 }
 
 function openProductDetailModal(name, calories, protein, carbs, fat, category, readonly = false) {
+    const product = allFoods.find(f => f.name === name && f.category === category);
+    
+    if (category === 'Блюда' && product && product.recipe) {
+        openRecipeDetailModal(product.recipe.id, readonly);
+        return;
+    }
+    
     document.getElementById('productDetailName').textContent = name;
     document.getElementById('productDetailCategory').textContent = category;
     document.getElementById('productDetailCalories').textContent = calories;
@@ -2135,7 +2163,8 @@ function initCharts() {
                     type: 'line',
                     borderColor: '#ef4444',
                     borderDash: [5, 5],
-                    borderWidth: 2
+                    borderWidth: 2,
+                    pointRadius: 0
                 }]
             },
             options: {
@@ -2155,20 +2184,76 @@ function initCharts() {
         type: 'bar',
         data: {
             labels: [],
-            datasets: [{
-                label: 'Калории',
-                data: [],
-                backgroundColor: 'linear-gradient(90deg, #10b981, #34d399)',
-                borderRadius: 8
-            }]
+            datasets: [
+                {
+                    label: 'Калории',
+                    data: [],
+                    backgroundColor: '#10b981',
+                    borderRadius: 8,
+                    order: 2
+                },
+                {
+                    label: 'Норма',
+                    data: [],
+                    type: 'line',
+                    borderColor: '#ef4444',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    order: 1
+                }
+            ]
         },
         options: {
             responsive: true,
             plugins: { 
                 legend: { position: 'top' } 
+            },
+            scales: {
+                y: { beginAtZero: true }
             }
         }
     });
+    
+    const activityCtx = document.getElementById('activityChart')?.getContext('2d');
+    if (activityCtx) {
+        activityChart = new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Сожжено (ккал)',
+                        data: [],
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 8,
+                        order: 2
+                    },
+                    {
+                        label: 'Цель',
+                        data: [],
+                        type: 'line',
+                        borderColor: '#ef4444',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { 
+                    legend: { position: 'top' } 
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
 }
 
 function changeChartPeriod(days, btn) {
@@ -2186,6 +2271,7 @@ function addWater(amount) {
     document.getElementById('waterCircle').style.setProperty('--water-deg', degrees + 'deg');
     
     updateWaterRemaining();
+    showToast('Добавлено воды: ' + amount + ' мл');
     saveWaterHistory();
 }
 
@@ -2199,7 +2285,7 @@ function addCustomWater() {
 }
 
 function saveWaterHistory() {
-    const today = new Date().toLocaleDateString('ru-RU');
+    const today = getDateKey(new Date());
     const existing = waterHistory.find(h => h.date === today);
     if (existing) {
         existing.amount = waterIntake;
@@ -2213,19 +2299,87 @@ function saveWaterHistory() {
 
 function updateWaterChart() {
     if (!waterChart) return;
-    const labels = waterHistory.map(w => w.date);
-    const data = waterHistory.map(w => w.amount);
+    const dates = waterHistory.slice(-7).map(w => w.date);
+    const data = waterHistory.slice(-7).map(w => w.amount);
+    const labels = dates.map(d => {
+        let date;
+        if (d.includes('.')) {
+            const parts = d.split('.');
+            date = new Date(parts[2], parts[1] - 1, parts[0]);
+        } else {
+            date = new Date(d);
+        }
+        return date.toLocaleDateString('ru-RU');
+    });
     waterChart.data.labels = labels;
     waterChart.data.datasets[0].data = data;
     waterChart.data.datasets[1].data = labels.map(() => userGoals.water);
     waterChart.update();
 }
 
+function updateCaloriesChart() {
+    if (!caloriesChart) return;
+    const dates = Object.keys(mealsByDate).sort().slice(-7);
+    const data = dates.map(dateKey => {
+        let cal = 0;
+        const dayMeals = mealsByDate[dateKey] || {};
+        for (let i = 0; i < 4; i++) {
+            const entries = dayMeals[i] || [];
+            for (let e of entries) {
+                cal += e.calories || 0;
+            }
+        }
+        return Math.round(cal);
+    });
+    const labels = dates.map(d => {
+        let date;
+        if (d.includes('.')) {
+            const parts = d.split('.');
+            date = new Date(parts[2], parts[1] - 1, parts[0]);
+        } else {
+            date = new Date(d);
+        }
+        return date.toLocaleDateString('ru-RU');
+    });
+    caloriesChart.data.labels = labels;
+    caloriesChart.data.datasets[0].data = data;
+    caloriesChart.data.datasets[1].data = labels.map(() => userGoals.calories);
+    caloriesChart.update();
+}
+
+function updateActivityChart() {
+    if (!activityChart) return;
+    const labels = activityHistory.slice(-7).map(a => {
+        let dateStr = a.date;
+        if (dateStr.includes('.')) {
+            const parts = dateStr.split('.');
+            dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
+        }
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('ru-RU');
+    });
+    const data = activityHistory.slice(-7).map(a => a.calories);
+    activityChart.data.labels = labels;
+    activityChart.data.datasets[0].data = data;
+    activityChart.data.datasets[1].data = labels.map(() => 300);
+    activityChart.update();
+}
+
 function loadWaterHistory() {
     const saved = localStorage.getItem('waterHistory');
     if (saved) {
-        waterHistory = JSON.parse(saved);
-        const today = new Date().toLocaleDateString('ru-RU');
+        let parsed = JSON.parse(saved);
+        parsed = parsed.map(w => {
+            let dateStr = w.date;
+            if (dateStr.includes('.')) {
+                const parts = dateStr.split('.');
+                dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+            return { ...w, date: dateStr };
+        });
+        waterHistory = parsed;
+        
+        const today = getDateKey(new Date());
         const todayEntry = waterHistory.find(h => h.date === today);
         if (todayEntry) {
             waterIntake = todayEntry.amount;
@@ -2233,9 +2387,18 @@ function loadWaterHistory() {
             const percentage = Math.min((waterIntake / userGoals.water) * 100, 100);
             const degrees = (percentage / 100) * 360;
             document.getElementById('waterCircle').style.setProperty('--water-deg', degrees + 'deg');
-            updateWaterRemaining();
         }
-        updateWaterChart();
+    }
+    
+    updateWaterRemaining();
+}
+
+function addCustomWater() {
+    const input = document.getElementById('customWaterAmount');
+    const amount = parseInt(input.value);
+    if (amount > 0) {
+        addWater(amount);
+        input.value = '';
     }
 }
 
@@ -2259,18 +2422,93 @@ function selectActivityType(type) {
     selectedActivityType = type;
     document.querySelectorAll('.activity-type-card').forEach(c => c.classList.remove('selected'));
     document.querySelector(`[data-type="${type}"]`).classList.add('selected');
-    document.getElementById('activityForm').style.display = 'block';
+    openActivityModal(type);
+}
+
+function selectActivityCard(type) {
+    selectedActivityType = type;
+    document.querySelectorAll('.activity-card-item').forEach(c => c.classList.remove('selected'));
+    document.querySelector(`.activity-card-item[data-type="${type}"]`).classList.add('selected');
+    openActivityModal(type);
+}
+
+function openActivityModal(type) {
+    const activityNames = ['Ходьба', 'Бег', 'Велосипед', 'Плавание', 'Силовая', 'Йога', 'Танцы', 'Бокс', 'Групповой'];
+    const modal = document.getElementById('activityModal');
+    document.getElementById('activityModalTitle').textContent = 'Добавить ' + (activityNames[type] || 'активность');
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeActivityModal() {
+    const modal = document.getElementById('activityModal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    document.getElementById('activityDuration').value = '';
+}
+
+document.getElementById('activityModal').addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        closeActivityModal();
+    }
+});
+
+function getTodayActivityDuration(type) {
+    const today = getDateKey(new Date());
+    return activityHistory.filter(a => a.date === today && a.type === type).reduce((sum, a) => sum + (a.duration || 0), 0);
+}
+
+function getTodayActivityCalories(type) {
+    const today = getDateKey(new Date());
+    return activityHistory.filter(a => a.date === today && a.type === type).reduce((sum, a) => sum + (a.calories || 0), 0);
+}
+
+function getTodayTotalCalories() {
+    const today = getDateKey(new Date());
+    return activityHistory.filter(a => a.date === today).reduce((sum, a) => sum + (a.calories || 0), 0);
+}
+
+function getEnergyHint() {
+    const net = dailyData.calories - getTodayTotalCalories();
+    if (net > 0) {
+        const remainingToBurn = net;
+        const caloriesPerMin = 4;
+        const minutesNeeded = Math.round(remainingToBurn / caloriesPerMin);
+        return `Рекомендация: Прогулка ${minutesNeeded} мин сожжёт ещё ~${remainingToBurn} ккал и поможет достичь цели`;
+    } else {
+        return 'Отлично! Вы достигли дневной цели по калориям';
+    }
+}
+
+function updateActivityCards() {
+    document.getElementById('consumedCalories').textContent = `${Math.round(dailyData.calories)} ккал`;
+    document.getElementById('burnedCalories').textContent = `${getTodayTotalCalories()} ккал`;
+    const net = dailyData.calories - getTodayTotalCalories();
+    const netEl = document.getElementById('netCalories');
+    netEl.textContent = `${net >= 0 ? '+' : ''}${Math.round(net)} ккал`;
+    netEl.className = `energy-stat-value ${net >= 0 ? 'positive' : 'negative'}`;
+    
+    const progress = Math.min((getTodayTotalCalories() / Math.max(dailyData.calories, 1)) * 100, 100);
+    document.getElementById('energyProgressBar').style.width = `${progress}%`;
+    document.getElementById('energyHint').textContent = getEnergyHint();
 }
 
 function addActivity() {
     const duration = parseFloat(document.getElementById('activityDuration').value);
     if (!duration || selectedActivityType === null) return;
     
-    const caloriesPerMin = [4, 10, 8, 9, 6, 3][selectedActivityType];
+    const caloriesPerMin = [4, 10, 8, 9, 6, 3, 7, 12, 5][selectedActivityType];
     const burned = Math.round(duration * caloriesPerMin);
+    
+    const today = getDateKey(new Date());
+    activityHistory.push({ date: today, calories: burned, duration: duration, type: selectedActivityType });
+    localStorage.setItem('activityHistory', JSON.stringify(activityHistory));
     
     showToast(`Добавлена активность: ${duration} минут, сожжено ~${burned} ккал`);
     document.getElementById('activityDuration').value = '';
+    closeActivityModal();
+    updateActivityCards();
 }
 
 // Recommendations
@@ -2285,12 +2523,12 @@ function loadRecommendations() {
 }
 
 function renderRecommendations(recs) {
-    const icons = { nutrition: '🍎', water: '💧', activity: '🏃', progress: '📊' };
+    const icons = { nutrition: 'Питание', water: 'Вода', activity: 'Активность', progress: 'Прогресс' };
     
     document.getElementById('recommendationsList').innerHTML = recs.map(r => `
         <div class="recommendation-card ${r.priority}">
             <div class="recommendation-icon">
-                ${icons[r.type] || '💡'}
+                ${icons[r.type] || 'Рекомендация'}
             </div>
             <div class="recommendation-content">
                 <h4>${r.title}</h4>
@@ -2489,7 +2727,7 @@ async function addWeightRecord() {
     const weight = parseFloat(document.getElementById('weightInput').value);
     if (!weight) return;
     
-    const today = new Date().toLocaleDateString('ru-RU');
+    const today = getDateKey(new Date());
     
     weightHistory.push({ date: today, weight: weight });
     
@@ -2536,7 +2774,15 @@ function calculateGoalsFromWeight(weight) {
 }
 
 function updateWeightChart() {
-    const labels = weightHistory.map(w => w.date);
+    const labels = weightHistory.map(w => {
+        let dateStr = w.date;
+        if (dateStr.includes('.')) {
+            const parts = dateStr.split('.');
+            dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
+        }
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('ru-RU');
+    });
     const data = weightHistory.map(w => w.weight);
     
     weightChart.data.labels = labels;
@@ -2561,12 +2807,24 @@ function updateWeightProgress() {
 function loadWeightHistory() {
     const saved = localStorage.getItem('weightHistory');
     if (saved) {
-        weightHistory = JSON.parse(saved);
+        let parsed = JSON.parse(saved);
+        parsed = parsed.map(w => {
+            let dateStr = w.date;
+            if (dateStr.includes('.')) {
+                const parts = dateStr.split('.');
+                dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
+            }
+            return { ...w, date: dateStr };
+        });
+        weightHistory = parsed;
         if (weightHistory.length > 0) {
             document.getElementById('currentWeight').textContent = weightHistory[weightHistory.length - 1].weight;
         }
         updateWeightChart();
         updateWeightProgress();
+    } else {
+        weightHistory = [];
+        document.getElementById('currentWeight').textContent = '--';
     }
     
     const savedGoals = localStorage.getItem('userGoals');
@@ -2586,3 +2844,26 @@ function loadWeightHistory() {
 function openReminderModal() {
     showToast('Функция добавления напоминаний скоро будет доступна!');
 }
+
+function showToast(message, type = 'success') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    
+    const colors = {
+        success: 'linear-gradient(135deg, #10b981, #059669)',
+        water: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+        error: 'linear-gradient(135deg, #ef4444, #dc2626)'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    
+    const bg = colors[type] || colors.success;
+    toast.style.cssText = 'position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: ' + bg + '; color: white; padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 600; z-index: 10000; box-shadow: 0 10px 40px rgba(0,0,0,0.3); animation: toastSlideUp 0.4s ease-out;';
+    
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 3500);
+}
+
+

@@ -271,16 +271,12 @@
                     <div class="chart-container">
                         <div class="chart-header">
                             <h3 class="chart-title">Динамика веса</h3>
-                            <div class="chart-tabs">
-                                <button class="chart-tab active" data-period="30">30 дней</button>
-                                <button class="chart-tab" data-period="90">90 дней</button>
-                            </div>
                         </div>
                         <canvas id="weightChart"></canvas>
                     </div>
 
                     <div class="card">
-                        <h3 class="card-title">📝 Записать вес</h3>
+                        <h3 class="card-title">Записать вес</h3>
                         <div class="weight-display">
                             <span id="currentWeight">--</span>
                             <span class="weight-unit">кг</span>
@@ -311,6 +307,13 @@
                         <h3 class="chart-title">Водный баланс</h3>
                     </div>
                     <canvas id="waterChart"></canvas>
+                </div>
+
+                <div class="chart-container" style="margin-top: 28px;">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Активность</h3>
+                    </div>
+                    <canvas id="activityChart"></canvas>
                 </div>
             </div>
 
@@ -355,58 +358,94 @@
                     <p class="page-subtitle">Учитывайте сожженные калории от тренировок</p>
                 </div>
 
-                <div class="activity-grid" id="activityGrid">
-                    <div class="activity-type-card" data-type="0" data-bg="img/activity/walking.jpg">
-                        <div class="activity-content">
-                            <div class="activity-name">Ходьба</div>
-                            <div class="activity-cal">~4 ккал/мин</div>
-                        </div>
+                <div class="activity-cards-grid" id="activityCardsGrid">
+                    <div class="activity-card-item" data-type="0" onclick="selectActivityCard(0)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/walking.jpg')"></div>
+                        <div class="activity-card-name">Ходьба</div>
+                        <div class="activity-card-static">1 мин = 4 ккал</div>
                     </div>
-                    <div class="activity-type-card" data-type="1" data-bg="img/activity/runinng.jpg">
-                        <div class="activity-content">
-                            <div class="activity-name">Бег</div>
-                            <div class="activity-cal">~10 ккал/мин</div>
-                        </div>
+                    <div class="activity-card-item" data-type="1" onclick="selectActivityCard(1)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/runinng.jpg')"></div>
+                        <div class="activity-card-name">Бег</div>
+                        <div class="activity-card-static">1 мин = 10 ккал</div>
                     </div>
-                    <div class="activity-type-card" data-type="2" data-bg="img/activity/sykling.jpg">
-                        <div class="activity-content">
-                            <div class="activity-name">Велосипед</div>
-                            <div class="activity-cal">~8 ккал/мин</div>
-                        </div>
+                    <div class="activity-card-item" data-type="2" onclick="selectActivityCard(2)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/sykling.jpg')"></div>
+                        <div class="activity-card-name">Велосипед</div>
+                        <div class="activity-card-static">1 мин = 8 ккал</div>
                     </div>
-                    <div class="activity-type-card" data-type="3" data-bg="img/activity/swiminng.jpg">
-                        <div class="activity-content">
-                            <div class="activity-name">Плавание</div>
-                            <div class="activity-cal">~9 ккал/мин</div>
-                        </div>
+                    <div class="activity-card-item" data-type="3" onclick="selectActivityCard(3)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/swiminng.jpg')"></div>
+                        <div class="activity-card-name">Плавание</div>
+                        <div class="activity-card-static">1 мин = 9 ккал</div>
                     </div>
-                    <div class="activity-type-card" data-type="4" data-bg="img/activity/strenghtness.jpg">
-                        <div class="activity-content">
-                            <div class="activity-name">Силовая</div>
-                            <div class="activity-cal">~6 ккал/мин</div>
-                        </div>
+                    <div class="activity-card-item" data-type="4" onclick="selectActivityCard(4)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/strenghtness.jpg')"></div>
+                        <div class="activity-card-name">Силовая</div>
+                        <div class="activity-card-static">1 мин = 6 ккал</div>
                     </div>
-                    <div class="activity-type-card" data-type="5" data-bg="img/activity/yoga.jpg">
-                        <div class="activity-content">
-                            <div class="activity-name">Йога</div>
-                            <div class="activity-cal">~3 ккал/мин</div>
-                        </div>
+                    <div class="activity-card-item" data-type="5" onclick="selectActivityCard(5)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/yoga.jpg')"></div>
+                        <div class="activity-card-name">Йога</div>
+                        <div class="activity-card-static">1 мин = 3 ккал</div>
+                    </div>
+                    <div class="activity-card-item" data-type="6" onclick="selectActivityCard(6)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/dance.jpg')"></div>
+                        <div class="activity-card-name">Танцы</div>
+                        <div class="activity-card-static">1 мин = 7 ккал</div>
+                    </div>
+                    <div class="activity-card-item" data-type="7" onclick="selectActivityCard(7)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/box.jpg')"></div>
+                        <div class="activity-card-name">Бокс</div>
+                        <div class="activity-card-static">1 мин = 12 ккал</div>
+                    </div>
+                    <div class="activity-card-item" data-type="8" onclick="selectActivityCard(8)">
+                        <div class="activity-card-img" style="background-image: url('img/activity/group.jpg')"></div>
+                        <div class="activity-card-name">Групповой</div>
+                        <div class="activity-card-static">1 мин = 5 ккал</div>
                     </div>
                 </div>
 
-                <div class="card" id="activityForm" style="display: none;">
-                    <h3 class="card-title">Добавить активность</h3>
-                    <div class="two-column">
-                        <div class="form-group">
-                            <label class="form-label">Длительность (минуты)</label>
-                            <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30">
+                <div class="energy-balance-card">
+                    <div class="energy-balance-title">ЭНЕРГЕТИЧЕСКИЙ БАЛАНС</div>
+                    <div class="energy-balance-stats">
+                        <div class="energy-stat">
+                            <div class="energy-stat-label">ПОТРЕБЛЕНО</div>
+                            <div class="energy-stat-value" id="consumedCalories">0 ккал</div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Дата</label>
-                            <input type="date" class="form-input" id="activityDate">
+                        <div class="energy-stat">
+                            <div class="energy-stat-label">СОЖЖЕНО</div>
+                            <div class="energy-stat-value" id="burnedCalories">0 ккал</div>
+                        </div>
+                        <div class="energy-stat">
+                            <div class="energy-stat-label">ИТОГ</div>
+                            <div class="energy-stat-value" id="netCalories">0 ккал</div>
                         </div>
                     </div>
-                    <button class="btn btn-primary" id="addActivityBtn">Добавить</button>
+                    <div class="energy-progress-container">
+                        <div class="energy-progress-bar" id="energyProgressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="energy-hint" id="energyHint">Добавьте активность</div>
+                </div>
+
+                <div class="modal-overlay" id="activityModal" style="display: none;">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="activityModalTitle">Добавить активность</h3>
+                            <span class="modal-close" onclick="closeActivityModal()">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label class="form-label">Длительность (минуты)</label>
+                                <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Дата</label>
+                                <input type="date" class="form-input" id="activityDate">
+                            </div>
+                            <button class="btn btn-primary" id="addActivityBtn" style="width: 100%;">Добавить</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -640,15 +679,15 @@
             <div id="recipeDetailHeader" style="height:180px; background:linear-gradient(135deg, #10b981, #059669); border-radius:8px; margin-bottom:12px;"></div>
             <div class="recipe-detail-info">
                 <div class="recipe-detail-info-item">
-                    <span>⏱️</span>
+                    <span>Время:</span>
                     <span id="recipeDetailTime">0 мин</span>
                 </div>
                 <div class="recipe-detail-info-item">
-                    <span>🍽️</span>
+                    <span>Порций:</span>
                     <span id="recipeDetailServings">1 порция</span>
                 </div>
                 <div class="recipe-detail-info-item">
-                    <span>🌍</span>
+                    <span>Кухня:</span>
                     <span id="recipeDetailCuisine">-</span>
                 </div>
             </div>
