@@ -9,7 +9,7 @@
        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <!-- Loading Screen -->
@@ -427,26 +427,6 @@
                     </div>
                     <div class="energy-hint" id="energyHint">Добавьте активность</div>
                 </div>
-
-                <div class="modal-overlay" id="activityModal" style="display: none;">
-                    <div class="modal">
-                        <div class="modal-header">
-                            <h3 class="modal-title" id="activityModalTitle">Добавить активность</h3>
-                            <span class="modal-close" onclick="closeActivityModal()">&times;</span>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label class="form-label">Длительность (минуты)</label>
-                                <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Дата</label>
-                                <input type="date" class="form-input" id="activityDate">
-                            </div>
-                            <button class="btn btn-primary" id="addActivityBtn" style="width: 100%;">Добавить</button>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Reminders Page -->
@@ -557,6 +537,23 @@
                 </div>
             </div>
         </main>
+
+        <!-- Activity Modal -->
+        <div id="activityModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
+            <div style="background:white; border-radius:12px; padding:20px; max-width:340px; width:90%; margin:auto; position:relative;">
+                <button onclick="closeActivityModal()" style="position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; background:#f0f0f0; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
+                <h3 id="activityModalTitle" style="font-size:18px; margin:0 0 16px 0;">Добавить активность</h3>
+                <div class="form-group">
+                    <label class="form-label">Длительность (минуты)</label>
+                    <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Дата</label>
+                    <input type="date" class="form-input" id="activityDate">
+                </div>
+                <button class="btn btn-primary" id="addActivityBtn" style="width: 100%;">Добавить</button>
+            </div>
+        </div>
     </div>
 
     <!-- Add Food Modal -->
