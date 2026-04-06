@@ -8,6 +8,7 @@ let userGoals = { calories: 2000, protein: 100, carbs: 250, fat: 65, water: 2000
 let dailyData = { calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 };
 let meals = { 0: [], 1: [], 2: [], 3: [] };
 let mealsByDate = {};
+let waterIntake = 0;
 
 function getDateKey(date) {
     return date.toISOString().split('T')[0];
@@ -40,10 +41,11 @@ function loadDailyData() {
 function saveCurrentDayData() {
     const dateKey = getDateKey(currentDate);
     mealsByDate[dateKey] = JSON.parse(JSON.stringify(meals));
+    localStorage.setItem('mealsByDate', JSON.stringify(mealsByDate));
 }
 
 // Recipe Detail Modal
-function openRecipeDetailModal(recipeId) {
+function openRecipeDetailModal(recipeId, readonly = false) {
     const recipe = recipes.find(r => r.id === recipeId);
     if (!recipe) return;
     
@@ -52,7 +54,7 @@ function openRecipeDetailModal(recipeId) {
     
     document.getElementById('recipeDetailName').textContent = recipe.name;
     document.getElementById('recipeDetailTime').textContent = (recipe.prepTimeMinutes + recipe.cookTimeMinutes) + ' мин';
-    document.getElementById('recipeDetailServings').textContent = recipe.servings + ' порц.';
+    document.getElementById('recipeDetailServings').textContent = recipe.servings + (recipe.servings === 1 ? ' порция' : ' порций');
     document.getElementById('recipeDetailCuisine').textContent = recipe.cuisine || '-';
     document.getElementById('recipeDetailCalories').textContent = Math.round(nutrition.calories || 0);
     document.getElementById('recipeDetailProtein').textContent = Math.round(nutrition.protein || 0);
@@ -111,11 +113,16 @@ function openRecipeDetailModal(recipeId) {
     
     const portionsInput = document.getElementById('recipeDetailPortions');
     if (portionsInput) {
+        portionsInput.disabled = readonly;
         portionsInput.addEventListener('input', function() {
             console.log('Input changed:', this.value);
             const portions = parseFloat(this.value) || 1;
             updateRecipeData(portions);
         });
+    }
+    
+    if (readonly) {
+        document.getElementById('addRecipeDetailBtn').style.display = 'none';
     }
     
     document.getElementById('recipeDetailModal').style.display = 'flex';
@@ -147,6 +154,12 @@ function openRecipeDetailModal(recipeId) {
 function closeRecipeDetailModal() {
     document.getElementById('recipeDetailModal').style.display = 'none';
     selectedRecipeDetail = null;
+    
+    const addBtn = document.getElementById('addRecipeDetailBtn');
+    if (addBtn) addBtn.style.display = 'block';
+    
+    const portionsInput = document.getElementById('recipeDetailPortions');
+    if (portionsInput) portionsInput.disabled = false;
 }
 
 function addRecipeDetailToMeal() {
@@ -158,11 +171,12 @@ function addRecipeDetailToMeal() {
     const entry = {
         productId: selectedRecipeDetail.id,
         productName: selectedRecipeDetail.name,
-        grams: `${portions} порц.`,
+        grams: portions == 1 ? '1 порция' : `${portions} порций`,
         calories: (nutrition.calories || 0) * portions,
         protein: (nutrition.protein || 0) * portions,
         carbs: (nutrition.carbs || 0) * portions,
-        fat: (nutrition.fat || 0) * portions
+        fat: (nutrition.fat || 0) * portions,
+        isRecipe: true
     };
     
     if (!meals[currentMealType]) meals[currentMealType] = [];
@@ -173,6 +187,7 @@ function addRecipeDetailToMeal() {
     dailyData.carbs += entry.carbs;
     dailyData.fat += entry.fat;
     
+    saveCurrentDayData();
     updateStats();
     renderMeals();
     document.getElementById('recipeDetailModal').style.display = 'none';
@@ -181,6 +196,12 @@ function addRecipeDetailToMeal() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Load saved data
+    const savedMeals = localStorage.getItem('mealsByDate');
+    if (savedMeals) {
+        mealsByDate = JSON.parse(savedMeals);
+    }
+    
     // Hide loader and show app
     setTimeout(() => {
         document.getElementById('loader').classList.add('hidden');
@@ -382,11 +403,11 @@ function showPage(pageId) {
     }
     
     if (pageId === 'water') {
-        calculateWaterGoal();
+        updateWaterRemaining();
     }
     
     if (pageId === 'progress') {
-        calculateWaterGoal();
+        updateWaterRemaining();
         updateWaterChart();
     }
     
@@ -451,6 +472,16 @@ function updateStats() {
     document.getElementById('totalCarbs').textContent = Math.round(dailyData.carbs);
     document.getElementById('totalFat').textContent = Math.round(dailyData.fat);
     
+    const caloriesGoalEl = document.getElementById('caloriesGoal');
+    const proteinGoalEl = document.getElementById('proteinGoal');
+    const carbsGoalEl = document.getElementById('carbsGoal');
+    const fatGoalEl = document.getElementById('fatGoal');
+    
+    if (caloriesGoalEl) caloriesGoalEl.textContent = userGoals.calories;
+    if (proteinGoalEl) proteinGoalEl.textContent = userGoals.protein;
+    if (carbsGoalEl) carbsGoalEl.textContent = userGoals.carbs;
+    if (fatGoalEl) fatGoalEl.textContent = userGoals.fat;
+    
     // Animate progress bars
     setTimeout(() => {
         document.getElementById('caloriesProgress').style.width = Math.min((dailyData.calories / userGoals.calories) * 100, 100) + '%';
@@ -477,19 +508,89 @@ function renderMeals() {
                 </div>
                 <div class="meal-calories">${Math.round(totalCal)} ккал</div>
                 <div class="meal-items">
-                    ${mealEntries.slice(0, 3).map(e => `
+                    ${mealEntries.slice(0, 10).map((e, idx) => `
                         <div class="meal-item">
-                            <span>${e.productName}</span>
-                            <span>${e.grams}</span>
+                            <span class="meal-item-name">${e.productName}</span>
+                            <span class="meal-item-grams">${e.grams} <span class="delete-meal-item" onclick="event.stopPropagation(); deleteMealItem(${i}, ${idx})" title="Удалить">✕</span></span>
                         </div>
                     `).join('')}
-                    ${mealEntries.length > 3 ? `<div class="meal-item">+${mealEntries.length - 3} ещё...</div>` : ''}
+                    ${mealEntries.length > 10 ? `<div class="meal-item">+${mealEntries.length - 10} ещё...</div>` : ''}
                 </div>
             </div>
         `;
     }
     document.getElementById('mealsGrid').innerHTML = html;
 }
+
+function deleteMealItem(mealIdx, itemIdx) {
+    const entry = meals[mealIdx][itemIdx];
+    if (!entry) return;
+    
+    meals[mealIdx].splice(itemIdx, 1);
+    
+    dailyData.calories -= entry.calories;
+    dailyData.protein -= entry.protein;
+    dailyData.carbs -= entry.carbs;
+    dailyData.fat -= entry.fat;
+    
+    if (dailyData.calories < 0) dailyData.calories = 0;
+    if (dailyData.protein < 0) dailyData.protein = 0;
+    if (dailyData.carbs < 0) dailyData.carbs = 0;
+    if (dailyData.fat < 0) dailyData.fat = 0;
+    
+    saveCurrentDayData();
+    updateStats();
+    renderMeals();
+    showToast('Удалено: ' + entry.productName);
+}
+    const entry = meals[mealIdx][itemIdx];
+    if (!entry) return;
+    
+    if (entry.isRecipe) {
+        const recipe = recipes.find(r => r.id === entry.productId);
+        if (recipe) {
+            openRecipeDetailModal(recipe.id, readonly);
+            return;
+        }
+    }
+    
+    const product = allFoods.find(f => f.id === entry.productId);
+    if (product) {
+        openProductDetailModal(
+            product.name,
+            product.caloriesPer100g || 0,
+            product.proteinPer100g || 0,
+            product.carbsPer100g || 0,
+            product.fatPer100g || 0,
+            product.category || '',
+            readonly
+        );
+        return;
+    }
+    
+    document.getElementById('productDetailName').textContent = entry.productName;
+    document.getElementById('productDetailCategory').textContent = 'Добавлено вручную';
+    document.getElementById('productDetailCalories').textContent = Math.round(entry.calories);
+    document.getElementById('productDetailProtein').textContent = Math.round(entry.protein);
+    document.getElementById('productDetailCarbs').textContent = Math.round(entry.carbs);
+    document.getElementById('productDetailFat').textContent = Math.round(entry.fat);
+    
+    document.getElementById('productDetailGramsLabel').textContent = 'Количество';
+    document.getElementById('productDetailGrams').value = entry.grams;
+    document.getElementById('totalGrams').textContent = entry.grams;
+    document.getElementById('modalTotalCalories').textContent = Math.round(entry.calories);
+    document.getElementById('modalTotalProtein').textContent = Math.round(entry.protein);
+    document.getElementById('modalTotalCarbs').textContent = Math.round(entry.carbs);
+    document.getElementById('modalTotalFat').textContent = Math.round(entry.fat);
+    
+    if (readonly) {
+        const addBtn = document.querySelector('#productDetailModal button[onclick="addProductDetailToMeal()"]');
+        if (addBtn) addBtn.style.display = 'none';
+        document.getElementById('productDetailGrams').disabled = true;
+    }
+    
+    document.getElementById('productDetailModal').style.display = 'flex';
+
 
 // Modal Functions
 function openMealModal(mealType) {
@@ -664,7 +765,7 @@ function addProductDirectly(id, calories, protein, carbs, fat, isRecipe, default
     let ratio, gramsDisplay;
     if (isRecipe) {
         ratio = defaultValue;
-        gramsDisplay = `${defaultValue} порц.`;
+        gramsDisplay = defaultValue == 1 ? '1 порция' : `${defaultValue} порций`;
     } else {
         ratio = defaultValue / 100;
         gramsDisplay = `${defaultValue}г`;
@@ -677,7 +778,8 @@ function addProductDirectly(id, calories, protein, carbs, fat, isRecipe, default
         calories: calories * ratio,
         protein: protein * ratio,
         carbs: carbs * ratio,
-        fat: fat * ratio
+        fat: fat * ratio,
+        isRecipe: isRecipe || false
     };
     
     if (!meals[currentMealType]) meals[currentMealType] = [];
@@ -731,7 +833,7 @@ function selectProduct(product) {
     
     // Update labels based on type
     if (isRecipe) {
-        document.getElementById('nutritionPer100Label').textContent = `На 1 порцию (${servings} порц.):`;
+        document.getElementById('nutritionPer100Label').textContent = `На 1 порцию (${servings === 1 ? '1 порция' : servings + ' порций'}):`;
         document.getElementById('quantityLabel').textContent = 'Количество порций:';
         document.getElementById('productDetailGrams').value = 1;
         document.getElementById('totalGrams').textContent = 1;
@@ -1698,7 +1800,7 @@ function renderRecipes(recipesToRender) {
                 <h3 class="recipe-name">${r.name}</h3>
                 <div class="recipe-info">
                     <span>⏱️ ${(r.prepTimeMinutes || 0) + (r.cookTimeMinutes || 0)} мин</span>
-                    <span>🍽️ ${r.servings || 1} порц.</span>
+                    <span>🍽️ ${r.servings == 1 ? '1 порция' : (r.servings || 1) + ' порций'}</span>
                 </div>
                 <div class="recipe-nutrition">
                     <div class="nutrition-item calories">
@@ -1804,7 +1906,7 @@ function renderProductsPage(productsToRender) {
     }).join('');
 }
 
-function openProductDetailModal(name, calories, protein, carbs, fat, category) {
+function openProductDetailModal(name, calories, protein, carbs, fat, category, readonly = false) {
     document.getElementById('productDetailName').textContent = name;
     document.getElementById('productDetailCategory').textContent = category;
     document.getElementById('productDetailCalories').textContent = calories;
@@ -1839,6 +1941,12 @@ function openProductDetailModal(name, calories, protein, carbs, fat, category) {
         document.getElementById('modalTotalFat').textContent = fat;
     }
     document.getElementById('productDetailModal').style.display = 'flex';
+    
+    if (readonly) {
+        const addBtn = document.querySelector('#productDetailModal button[onclick="addProductDetailToMeal()"]');
+        if (addBtn) addBtn.style.display = 'none';
+        document.getElementById('productDetailGrams').disabled = true;
+    }
     
     selectProductMeal(0);
     
@@ -1902,6 +2010,14 @@ function selectProductMeal(mealIndex) {
 
 function closeProductDetailModal() {
     document.getElementById('productDetailModal').style.display = 'none';
+    
+    const addBtn = document.querySelector('#productDetailModal button[onclick="addProductDetailToMeal()"]');
+    if (addBtn) addBtn.style.display = 'block';
+    
+    const gramsInput = document.getElementById('productDetailGrams');
+    if (gramsInput) {
+        gramsInput.disabled = false;
+    }
 }
 
 function updateProductDetailNutrition() {
@@ -1939,7 +2055,7 @@ function addProductDetailToMeal() {
     if (selectedProductDetail.isRecipe) {
         const portions = grams;
         ratio = portions;
-        gramsDisplay = `${portions} порц.`;
+        gramsDisplay = portions == 1 ? '1 порция' : `${portions} порций`;
     } else {
         ratio = grams / 100;
         gramsDisplay = `${grams}г`;
@@ -1952,7 +2068,8 @@ function addProductDetailToMeal() {
         calories: selectedProductDetail.calories * ratio,
         protein: selectedProductDetail.protein * ratio,
         carbs: selectedProductDetail.carbs * ratio,
-        fat: selectedProductDetail.fat * ratio
+        fat: selectedProductDetail.fat * ratio,
+        isRecipe: selectedProductDetail.isRecipe || false
     };
     
     const mealType = selectedProductMeal || 0;
@@ -1964,6 +2081,7 @@ function addProductDetailToMeal() {
     dailyData.carbs += entry.carbs;
     dailyData.fat += entry.fat;
     
+    saveCurrentDayData();
     updateStats();
     renderMeals();
     closeProductDetailModal();
@@ -2381,10 +2499,40 @@ async function addWeightRecord() {
     document.getElementById('currentWeight').textContent = weight;
     document.getElementById('weightInput').value = '';
     
-    calculateWaterGoal();
+    calculateGoalsFromWeight(weight);
     updateWeightChart();
     updateWeightProgress();
-    showToast('Вес записан: ' + weight + ' кг. Водный баланс обновлён: ' + userGoals.water + ' мл');
+    updateStats();
+    updateWaterRemaining();
+    if (document.getElementById('waterGoal')) {
+        document.getElementById('waterGoal').textContent = userGoals.water;
+    }
+    showToast('Вес записан: ' + weight + ' кг. Цель калорий: ' + userGoals.calories + ', Вода: ' + userGoals.water + ' мл');
+}
+
+function calculateGoalsFromWeight(weight) {
+    const activity = localStorage.getItem('userActivity') ? parseInt(localStorage.getItem('userActivity')) : 1;
+    const height = localStorage.getItem('userHeight') ? parseFloat(localStorage.getItem('userHeight')) : 170;
+    const age = localStorage.getItem('userAge') ? parseInt(localStorage.getItem('userAge')) : 30;
+    const gender = localStorage.getItem('userGender') || 'male';
+    
+    let bmr;
+    if (gender === 'male') {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    }
+    
+    const activityMultipliers = { 1: 1.2, 2: 1.375, 3: 1.55, 4: 1.725, 5: 1.9 };
+    const multiplier = activityMultipliers[activity] || 1.2;
+    
+    userGoals.calories = Math.round(bmr * multiplier);
+    userGoals.protein = Math.round(weight * 1.8);
+    userGoals.carbs = Math.round(userGoals.calories * 0.45 / 4);
+    userGoals.fat = Math.round(userGoals.calories * 0.30 / 9);
+    userGoals.water = Math.round(weight * 35 + (activity >= 2 ? 500 : 0));
+    
+    localStorage.setItem('userGoals', JSON.stringify(userGoals));
 }
 
 function updateWeightChart() {
@@ -2419,6 +2567,18 @@ function loadWeightHistory() {
         }
         updateWeightChart();
         updateWeightProgress();
+    }
+    
+    const savedGoals = localStorage.getItem('userGoals');
+    if (savedGoals) {
+        userGoals = JSON.parse(savedGoals);
+    } else if (weightHistory.length > 0) {
+        const lastWeight = weightHistory[weightHistory.length - 1].weight;
+        calculateGoalsFromWeight(lastWeight);
+    }
+    
+    if (document.getElementById('waterGoal')) {
+        document.getElementById('waterGoal').textContent = userGoals.water;
     }
 }
 

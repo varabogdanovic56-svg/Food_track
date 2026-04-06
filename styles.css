@@ -646,8 +646,41 @@ body {
 }
 
 .meal-item:hover {
-    color: var(--primary);
-    transform: translateX(4px);
+    color: var(--text-secondary);
+    transform: none;
+}
+
+.meal-item-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 8px;
+}
+
+.meal-item-grams {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.delete-meal-item {
+    opacity: 0;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: var(--transition-fast);
+}
+
+.meal-item:hover .delete-meal-item {
+    opacity: 1;
+}
+
+.delete-meal-item:hover {
+    background: #fee2e2;
 }
 
 .add-icon {
@@ -685,6 +718,7 @@ body {
     transition: var(--transition);
     cursor: pointer;
     border: 2px solid transparent;
+    overflow: hidden;
 }
 
 .recipe-card:hover {
@@ -804,16 +838,23 @@ body {
 
 .recipe-info {
     display: flex;
-    gap: 20px;
+    gap: 8px;
     color: var(--text-muted);
-    font-size: 14px;
-    margin-bottom: 20px;
+    font-size: 11px;
+    margin-bottom: 16px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .recipe-info span {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .recipe-nutrition {
@@ -2300,6 +2341,7 @@ body {
     gap: 8px;
     color: var(--text-secondary);
     font-size: 14px;
+    white-space: nowrap;
 }
 
 .recipe-detail-section {
