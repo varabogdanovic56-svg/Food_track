@@ -215,6 +215,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('appContainer').classList.add('visible');
+        
+        // Force sidebar to be fixed
+        const sidebar = document.getElementById('sidebar');
+        sidebar.style.position = 'fixed';
+        sidebar.style.left = '0';
+        sidebar.style.top = '0';
+        sidebar.style.zIndex = '99999';
     }, 800);
     
     updateDateDisplay();
@@ -302,6 +309,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add reminder button
     document.getElementById('addReminderBtn').addEventListener('click', openReminderModal);
+    document.getElementById('saveReminderBtn').addEventListener('click', saveReminder);
+    
+    // Load reminders
+    loadReminders();
     
     // Product page filters
     document.querySelectorAll('.products-grid + .filter-section .filter-pill, .filter-section .filter-pill').forEach(btn => {
@@ -439,10 +450,6 @@ function showPage(pageId) {
     
     if (pageId === 'products') {
         renderProductsPage(allFoods);
-    }
-    
-    if (window.innerWidth < 1024) {
-        document.getElementById('sidebar').classList.remove('open');
     }
 }
 
@@ -1843,9 +1850,6 @@ function renderRecipes(recipesToRender) {
                         <div class="nutrition-label">жир</div>
                     </div>
                 </div>
-                <div class="recipe-tags">
-                    ${Object.entries(dietLabels).filter(([k, v]) => (r.dietTypes & parseInt(k)) === parseInt(k)).map(([k, v]) => `<span class="recipe-tag">${v}</span>`).join('')}
-                </div>
             </div>
         </div>
         `;
@@ -1902,8 +1906,8 @@ function renderProductsPage(productsToRender) {
             <div class="recipe-content">
                 <h3 class="recipe-name">${name}</h3>
                 <div class="recipe-info">
-                    <span>🥩 ${category || 'Блюдо'}</span>
-                    <span>⚖️ ${p.defaultGrams || 100}г</span>
+                    <span>${category || 'Блюдо'}</span>
+                    <span>${p.defaultGrams || 100}г</span>
                 </div>
                 <div class="recipe-nutrition">
                     <div class="nutrition-item calories">
@@ -2437,15 +2441,15 @@ function selectActivityCard(type) {
 function openActivityModal(type) {
     const activityNames = ['Ходьба', 'Бег', 'Велосипед', 'Плавание', 'Силовая', 'Йога', 'Танцы', 'Бокс', 'Групповой'];
     const modal = document.getElementById('activityModal');
-    document.getElementById('activityModalTitle').textContent = 'Добавить ' + (activityNames[type] || 'активность');
     
-    modal.classList.add('active');
+    document.getElementById('activityModalTitle').textContent = 'Добавить ' + (activityNames[type] || 'активность');
+    modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
 
 function closeActivityModal() {
     const modal = document.getElementById('activityModal');
-    modal.classList.remove('active');
+    modal.style.display = 'none';
     document.body.style.overflow = '';
     document.getElementById('activityDuration').value = '';
 }
@@ -2842,9 +2846,212 @@ function loadWeightHistory() {
     }
 }
 
-// Reminder modal
+// Reminders
+let reminders = [];
+let editingReminderIndex = -1;
+let notificationPermission = false;
+let lastNotificationTime = '';
+
+function loadReminders() {
+    const saved = localStorage.getItem('reminders');
+    if (saved) {
+        reminders = JSON.parse(saved);
+    } else {
+        reminders = [
+            { time: '08:00', type: 'Завтрак', active: true },
+            { time: '13:00', type: 'Обед', active: true },
+            { time: '19:00', type: 'Ужин', active: true },
+            { time: 'Каждые 2ч', type: 'Вода', active: true }
+        ];
+    }
+    renderReminders();
+    initNotifications();
+}
+
+function initNotifications() {
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            notificationPermission = true;
+            startReminderChecker();
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                notificationPermission = permission === 'granted';
+                if (notificationPermission) {
+                    startReminderChecker();
+                }
+            });
+        }
+    }
+}
+
+function startReminderChecker() {
+    setInterval(checkReminders, 60000); // Check every minute
+    checkReminders(); // Also check immediately
+}
+
+function checkReminders() {
+    if (!notificationPermission) return;
+    
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    const currentDate = now.toDateString();
+    const notificationKey = currentDate + '-' + currentTime;
+    
+    if (notificationKey === lastNotificationTime) return;
+    
+    reminders.forEach(r => {
+        if (!r.active) return;
+        
+        if (r.time === currentTime) {
+            lastNotificationTime = notificationKey;
+            showNotification(r.type);
+        }
+    });
+}
+
+function showNotification(type) {
+    if (!notificationPermission) return;
+    
+    const notification = new Notification('FoodTracker - Напоминание', {
+        body: `${type}!`,
+        icon: 'favicon.svg',
+        tag: 'reminder'
+    });
+    
+    notification.onclick = function() {
+        window.focus();
+        this.close();
+    };
+}
+
+function renderReminders() {
+    const grid = document.getElementById('remindersGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = reminders.map((r, i) => `
+        <div class="reminder-card">
+            <div class="reminder-info">
+                <div class="reminder-time">${r.time}</div>
+                <div>
+                    <div class="reminder-type">${r.type}</div>
+                    <div class="reminder-subtitle">${r.time.includes('Каждые') ? 'Напоминание' : 'Ежедневно'}</div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" ${r.active ? 'checked' : ''} onchange="toggleReminder(${i})">
+                    <span class="toggle-slider"></span>
+                </label>
+                <button onclick="editReminder(${i})" style="background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button onclick="deleteReminder(${i})" style="background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleReminder(index) {
+    reminders[index].active = !reminders[index].active;
+    saveReminders();
+}
+
 function openReminderModal() {
-    showToast('Функция добавления напоминаний скоро будет доступна!');
+    editingReminderIndex = -1;
+    document.getElementById('reminderModalTitle').textContent = 'Добавить напоминание';
+    document.getElementById('reminderTime').value = '';
+    document.getElementById('reminderType').value = 'Завтрак';
+    
+    const modal = document.getElementById('reminderModal');
+    modal.style.display = 'block';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.background = 'rgba(0,0,0,0.5)';
+    modal.style.zIndex = '99999';
+    
+    const content = modal.querySelector('div[style*="position:fixed"]');
+    if (content) {
+        content.style.position = 'fixed';
+        content.style.top = '50%';
+        content.style.left = '50%';
+        content.style.transform = 'translate(-50%, -50%)';
+    }
+}
+
+function closeReminderModal() {
+    const modal = document.getElementById('reminderModal');
+    modal.style.display = 'none';
+    editingReminderIndex = -1;
+}
+
+function editReminder(index) {
+    editingReminderIndex = index;
+    const r = reminders[index];
+    document.getElementById('reminderModalTitle').textContent = 'Редактировать напоминание';
+    document.getElementById('reminderTime').value = r.time;
+    document.getElementById('reminderType').value = r.type;
+    
+    const modal = document.getElementById('reminderModal');
+    modal.style.display = 'block';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.background = 'rgba(0,0,0,0.5)';
+    modal.style.zIndex = '99999';
+    
+    const content = modal.querySelector('div[style*="position:fixed"]');
+    if (content) {
+        content.style.position = 'fixed';
+        content.style.top = '50%';
+        content.style.left = '50%';
+        content.style.transform = 'translate(-50%, -50%)';
+    }
+}
+
+function deleteReminder(index) {
+    if (confirm('Удалить это напоминание?')) {
+        reminders.splice(index, 1);
+        saveReminders();
+        renderReminders();
+    }
+}
+
+function saveReminder() {
+    const time = document.getElementById('reminderTime').value;
+    const type = document.getElementById('reminderType').value;
+    
+    if (!time) {
+        showToast('Выберите время!');
+        return;
+    }
+    
+    if (editingReminderIndex >= 0) {
+        reminders[editingReminderIndex] = { time, type, active: true };
+    } else {
+        reminders.push({ time, type, active: true });
+    }
+    
+    saveReminders();
+    renderReminders();
+    closeReminderModal();
+    showToast(editingReminderIndex >= 0 ? 'Напоминание обновлено!' : 'Напоминание добавлено!');
+}
+
+function saveReminders() {
+    localStorage.setItem('reminders', JSON.stringify(reminders));
 }
 
 function showToast(message, type = 'success') {

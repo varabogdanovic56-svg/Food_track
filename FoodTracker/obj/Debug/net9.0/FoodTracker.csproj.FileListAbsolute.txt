@@ -32,3 +32,38 @@
 /Users/misa/Desktop/варя помощь/food_tracker/FoodTracker/obj/Debug/net9.0/compressed/ulsy517z1k-s2blrbs0hp.gz
 /Users/misa/Desktop/варя помощь/food_tracker/FoodTracker/obj/Debug/net9.0/compressed/k6q8l37pk9-eoe4j38kel.gz
 /Users/misa/Desktop/варя помощь/food_tracker/FoodTracker/obj/Debug/net9.0/compressed/8zyhaqtp1e-1i0lr9ckmg.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.staticwebassets.runtime.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.staticwebassets.endpoints.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.exe
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.deps.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.runtimeconfig.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.dll
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\FoodTracker.pdb
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\bin\Debug\net9.0\dotenv.net.dll
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.csproj.AssemblyReference.cache
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\rpswa.dswa.cache.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.AssemblyInfoInputs.cache
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.AssemblyInfo.cs
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.csproj.CoreCompileInputs.cache
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.sourcelink.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\rjimswa.dswa.cache.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\scopedcss\bundle\FoodTracker.styles.css
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\xyllty9bry-koox1vkei5.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\staticwebassets.build.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\staticwebassets.build.json.cache
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\staticwebassets.development.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\staticwebassets.build.endpoints.json
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTrac.3B1876BF.Up2Date
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.dll
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\refint\FoodTracker.dll
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.pdb
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.genruntimeconfig.cache
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\ref\FoodTracker.dll
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\ny7c5m03vk-kn7t95h7y0.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\8zyhaqtp1e-3ad73sn0kv.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\ulsy517z1k-tlj3uews6l.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\k6q8l37pk9-u6a9c1vcyy.gz

@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FoodTracker - Твое здоровое питание</title>
+    <meta name="description" content="Трекер питания и активности для здорового образа жизни">
+    <meta name="theme-color" content="#10b981">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="FoodTracker - Твое здоровое питание">
+    <meta property="og:description" content="Трекер питания и активности для здорового образа жизни">
+    <meta property="og:image" content="favicon.svg">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="FoodTracker - Твое здоровое питание">
+    <meta name="twitter:description" content="Трекер питания и активности для здорового образа жизни">
+    <meta name="twitter:image" content="favicon.svg">
+    
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,20 +46,20 @@
         </svg>
     </button>
 
-    <div class="app-container" id="appContainer">
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo" data-page="diary">
-                    <div class="logo-icon">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="logo-text">FoodTracker</div>
-                        <div class="logo-subtitle">Твое питание</div>
-                    </div>
+    <!-- Sidebar - outside app container so it doesn't move -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo" data-page="diary">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
                 </div>
+                <div>
+                    <div class="logo-text">FoodTracker</div>
+                    <div class="logo-subtitle">Твое питание</div>
+                </div>
+            </div>
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
@@ -119,11 +134,12 @@
                         <span>Чат</span>
                     </a>
                 </li>
-            </ul>
+            </div>
         </aside>
 
-        <main class="main-content">
-            <!-- Diary Page -->
+        <div id="appContainer" class="app-container">
+            <main class="main-content">
+                <!-- Diary Page -->
             <div class="page active" id="page-diary">
                 <div class="page-header">
                     <h1 class="page-title">Дневник питания</h1>
@@ -437,61 +453,33 @@
                 </div>
 
                 <div class="reminders-grid" id="remindersGrid">
-                    <div class="reminder-card">
-                        <div class="reminder-info">
-                            <div class="reminder-time">08:00</div>
-                            <div>
-                                <div class="reminder-type">Завтрак</div>
-                                <div class="reminder-subtitle">Ежедневно</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="reminder-card">
-                        <div class="reminder-info">
-                            <div class="reminder-time">13:00</div>
-                            <div>
-                                <div class="reminder-type">Обед</div>
-                                <div class="reminder-subtitle">Ежедневно</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="reminder-card">
-                        <div class="reminder-info">
-                            <div class="reminder-time">19:00</div>
-                            <div>
-                                <div class="reminder-type">Ужин</div>
-                                <div class="reminder-subtitle">Ежедневно</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="reminder-card">
-                        <div class="reminder-info">
-                            <div class="reminder-time">Каждые 2ч</div>
-                            <div>
-                                <div class="reminder-type">Вода</div>
-                                <div class="reminder-subtitle">Напоминание</div>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+                    <!-- Reminders rendered by JavaScript -->
                 </div>
 
-                <button class="btn btn-primary" style="margin-top: 28px;" id="addReminderBtn">+ Добавить напоминание</button>
+                <button class="btn btn-primary" style="margin-top: 28px; display: block; margin-left: auto; margin-right: auto;" id="addReminderBtn">+ Добавить напоминание</button>
+            </div>
+
+            <!-- Reminder Modal -->
+            <div id="reminderModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99999;">
+                <div style="background:white; border-radius:12px; padding:24px; max-width:340px; width:90%; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);">
+                    <button onclick="closeReminderModal()" style="position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; background:#f0f0f0; border-radius:50%; font-size:20px; cursor:pointer;">×</button>
+                    <h3 id="reminderModalTitle" style="font-size:18px; margin:0 0 16px 0;">Добавить напоминание</h3>
+                    <div class="form-group">
+                        <label class="form-label">Время</label>
+                        <input type="time" class="form-input" id="reminderTime">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Тип</label>
+                        <select class="form-input" id="reminderType">
+                            <option value="Завтрак">Завтрак</option>
+                            <option value="Обед">Обед</option>
+                            <option value="Ужин">Ужин</option>
+                            <option value="Перекус">Перекус</option>
+                            <option value="Вода">Вода</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="saveReminderBtn" style="width: 100%;">Сохранить</button>
+                </div>
             </div>
 
             <!-- Recommendations Page -->
@@ -537,21 +525,22 @@
                 </div>
             </div>
         </main>
+        </div>
 
         <!-- Activity Modal -->
-        <div id="activityModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99999; align-items:center; justify-content:center;">
-            <div style="background:white; border-radius:12px; padding:20px; max-width:340px; width:90%; margin:auto; position:relative;">
-                <button onclick="closeActivityModal()" style="position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; background:#f0f0f0; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
-                <h3 id="activityModalTitle" style="font-size:18px; margin:0 0 16px 0;">Добавить активность</h3>
+        <div id="activityModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:99999;">
+            <div style="background:white; border-radius:16px; padding:32px; max-width:400px; width:85%; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+                <button onclick="closeActivityModal()" style="position:absolute; top:16px; right:16px; width:36px; height:36px; border:none; background:#f0f0f0; border-radius:50%; font-size:24px; cursor:pointer;">×</button>
+                <h3 id="activityModalTitle" style="font-size:22px; margin:0 0 20px 0; font-weight:700;">Добавить активность</h3>
                 <div class="form-group">
-                    <label class="form-label">Длительность (минуты)</label>
-                    <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30">
+                    <label class="form-label" style="font-size:16px; font-weight:600;">Длительность (минуты)</label>
+                    <input type="number" class="form-input" id="activityDuration" placeholder="Например: 30" style="padding:14px; font-size:16px;">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Дата</label>
-                    <input type="date" class="form-input" id="activityDate">
+                    <label class="form-label" style="font-size:16px; font-weight:600;">Дата</label>
+                    <input type="date" class="form-input" id="activityDate" style="padding:14px; font-size:16px;">
                 </div>
-                <button class="btn btn-primary" id="addActivityBtn" style="width: 100%;">Добавить</button>
+                <button class="btn btn-primary" id="addActivityBtn" style="width: 100%; padding:16px; font-size:18px; font-weight:700;">Добавить</button>
             </div>
         </div>
     </div>
