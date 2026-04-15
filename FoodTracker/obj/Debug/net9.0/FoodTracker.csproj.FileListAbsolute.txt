@@ -64,6 +64,6 @@ C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\Foo
 C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\FoodTracker.genruntimeconfig.cache
 C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\ref\FoodTracker.dll
 C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\ny7c5m03vk-kn7t95h7y0.gz
-C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\8zyhaqtp1e-3ad73sn0kv.gz
-C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\ulsy517z1k-tlj3uews6l.gz
-C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\k6q8l37pk9-u6a9c1vcyy.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\k6q8l37pk9-bdwj5ah1rq.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\ulsy517z1k-x2bp7bpy70.gz
+C:\Users\Варя\OneDrive\Desktop\food_tracker\FoodTracker\obj\Debug\net9.0\compressed\8zyhaqtp1e-vnihzj9fwl.gz

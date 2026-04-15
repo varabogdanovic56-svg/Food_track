@@ -452,32 +452,91 @@
                     <p class="page-subtitle">Настройте уведомления о приемах пищи</p>
                 </div>
 
-                <div class="reminders-grid" id="remindersGrid">
+                <div class="reminders-container" id="remindersGrid">
                     <!-- Reminders rendered by JavaScript -->
                 </div>
 
-                <button class="btn btn-primary" style="margin-top: 28px; display: block; margin-left: auto; margin-right: auto;" id="addReminderBtn">+ Добавить напоминание</button>
+                <div class="add-reminder-box" id="addReminderBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    <span>Добавить новое</span>
+                </div>
             </div>
 
             <!-- Reminder Modal -->
-            <div id="reminderModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99999;">
-                <div style="background:white; border-radius:12px; padding:24px; max-width:340px; width:90%; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);">
+            <div id="reminderModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:99999;">
+                <div style="background:white; border-radius:12px; padding:24px; max-width:380px; width:90%; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);">
                     <button onclick="closeReminderModal()" style="position:absolute; top:12px; right:12px; width:32px; height:32px; border:none; background:#f0f0f0; border-radius:50%; font-size:20px; cursor:pointer;">×</button>
                     <h3 id="reminderModalTitle" style="font-size:18px; margin:0 0 16px 0;">Добавить напоминание</h3>
+                    
+                    <!-- Тип повторения -->
                     <div class="form-group">
+                        <label class="form-label">Повторение</label>
+                        <select class="form-input" id="reminderRepeatType" onchange="toggleReminderFields()">
+                            <option value="once">Один раз</option>
+                            <option value="daily">Ежедневно</option>
+                            <option value="interval">Через N часов/минут</option>
+                            <option value="weekly">N раз в неделю</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Один раз / Ежедневно - время -->
+                    <div class="form-group" id="timeField">
                         <label class="form-label">Время</label>
                         <input type="time" class="form-input" id="reminderTime">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Тип</label>
-                        <select class="form-input" id="reminderType">
-                            <option value="Завтрак">Завтрак</option>
-                            <option value="Обед">Обед</option>
-                            <option value="Ужин">Ужин</option>
-                            <option value="Перекус">Перекус</option>
-                            <option value="Вода">Вода</option>
-                        </select>
+                    
+                    <!-- Через N часов/минут -->
+                    <div class="form-group" id="intervalField" style="display:none;">
+                        <label class="form-label">Через</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" class="form-input" id="reminderIntervalValue" placeholder="1" style="width:80px;">
+                            <select class="form-input" id="reminderIntervalUnit" style="width:100px;">
+                                <option value="minutes">минут</option>
+                                <option value="hours">часов</option>
+                            </select>
+                        </div>
                     </div>
+                    
+                    <!-- N раз в неделю -->
+                    <div class="form-group" id="weeklyField" style="display:none;">
+                        <label class="form-label">Дни недели</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="1"> Пн
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="2"> Вт
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="3"> Ср
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="4"> Чт
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="5"> Пт
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="6"> Сб
+                            </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:14px;">
+                                <input type="checkbox" class="reminderWeekday" value="0"> Вс
+                            </label>
+                        </div>
+                        <div class="form-group" style="margin-top:12px;">
+                            <label class="form-label">Время</label>
+                            <input type="time" class="form-input" id="reminderWeeklyTime">
+                        </div>
+                    </div>
+                    
+                    <!-- Тип напоминания -->
+                    <div class="form-group">
+                        <label class="form-label">Напоминание</label>
+                        <input type="text" class="form-input" id="reminderCustomType" placeholder="Свой текст (например: Выпить воды)">
+                    </div>
+                    
                     <button class="btn btn-primary" id="saveReminderBtn" style="width: 100%;">Сохранить</button>
                 </div>
             </div>

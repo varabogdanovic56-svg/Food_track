@@ -196,6 +196,7 @@ function addRecipeDetailToMeal() {
     renderMeals();
     document.getElementById('recipeDetailModal').style.display = 'none';
     showToast(`"${selectedRecipeDetail.name}" добавлен в дневник`);
+    loadRecommendations();
 }
 
 // Initialize
@@ -439,6 +440,10 @@ function showPage(pageId) {
     
     if (pageId === 'activity') {
         updateActivityCards();
+    }
+    
+    if (pageId === 'recommendations') {
+        loadRecommendations();
     }
     
     if (pageId === 'recipes') {
@@ -938,6 +943,7 @@ function addFoodToMeal() {
     updateStats();
     renderMeals();
     closeModal();
+    loadRecommendations();
 }
 
 // Recipes Database - 50 real recipes
@@ -2279,6 +2285,7 @@ function addWater(amount) {
     updateWaterRemaining();
     showToast('Добавлено воды: ' + amount + ' мл');
     saveWaterHistory();
+    loadRecommendations();
 }
 
 function addCustomWater() {
@@ -2355,8 +2362,15 @@ function updateCaloriesChart() {
 
 function updateActivityChart() {
     if (!activityChart) return;
-    const labels = activityHistory.slice(-7).map(a => {
-        let dateStr = a.date;
+    
+    const grouped = {};
+    activityHistory.forEach(a => {
+        if (!grouped[a.date]) grouped[a.date] = 0;
+        grouped[a.date] += a.calories || 0;
+    });
+    
+    const last7Days = Object.keys(grouped).slice(-7);
+    const labels = last7Days.map(dateStr => {
         if (dateStr.includes('.')) {
             const parts = dateStr.split('.');
             dateStr = parts[2] + '-' + parts[1] + '-' + parts[0];
@@ -2364,7 +2378,8 @@ function updateActivityChart() {
         const date = new Date(dateStr);
         return date.toLocaleDateString('ru-RU');
     });
-    const data = activityHistory.slice(-7).map(a => a.calories);
+    const data = last7Days.map(d => grouped[d]);
+    
     activityChart.data.labels = labels;
     activityChart.data.datasets[0].data = data;
     activityChart.data.datasets[1].data = labels.map(() => 300);
@@ -2475,15 +2490,29 @@ function getTodayTotalCalories() {
     return activityHistory.filter(a => a.date === today).reduce((sum, a) => sum + (a.calories || 0), 0);
 }
 
+function getRecommendedCaloriesToBurn() {
+    const avgCalories = Math.round(dailyData.calories);
+    const currentBurned = getTodayTotalCalories();
+    const recommended = Math.max(avgCalories - 200, 0);
+    return recommended;
+}
+
+function getCaloriesPerMinuteWalk() {
+    const weight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 70;
+    return Math.round(weight * 0.05);
+}
+
 function getEnergyHint() {
     const net = dailyData.calories - getTodayTotalCalories();
+    const recommended = getRecommendedCaloriesToBurn();
+    
     if (net > 0) {
         const remainingToBurn = net;
-        const caloriesPerMin = 4;
-        const minutesNeeded = Math.round(remainingToBurn / caloriesPerMin);
-        return `Рекомендация: Прогулка ${minutesNeeded} мин сожжёт ещё ~${remainingToBurn} ккал и поможет достичь цели`;
+        const cpm = getCaloriesPerMinuteWalk();
+        const minutesNeeded = Math.round(remainingToBurn / cpm);
+        return `Чтобы сжечь ~${remainingToBurn} ккал: ходьба ${minutesNeeded} мин (${cpm} ккал/мин)`;
     } else {
-        return 'Отлично! Вы достигли дневной цели по калориям';
+        return 'Отлично! Цель достигнута';
     }
 }
 
@@ -2515,30 +2544,178 @@ function addActivity() {
     document.getElementById('activityDuration').value = '';
     closeActivityModal();
     updateActivityCards();
+    loadRecommendations();
 }
 
 // Recommendations
 function loadRecommendations() {
-    const demoRecs = [
-        { title: 'Увеличьте калорийность', description: 'Вы съели только 70% от дневной нормы. Добавьте питательный перекус.', type: 'nutrition', priority: 'high' },
-        { title: 'Недостаток белка', description: 'Белок важен для мышц. Добавьте курицу, рыбу или творог.', type: 'nutrition', priority: 'medium' },
-        { title: 'Пейте больше воды', description: 'Вы выпили только 40% от нормы. Вода важна для метаболизма.', type: 'water', priority: 'high' },
-        { title: 'Добавьте активность', description: 'Регулярные тренировки ускоряют результат.', type: 'activity', priority: 'low' }
-    ];
-    renderRecommendations(demoRecs);
+    const recommendations = [];
+    const today = getDateKey(currentDate);
+    const todayData = mealsByDate[today] || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    
+    // === ПО ПИТАНИЮ ===
+    const nutritionPercent = Math.round((todayData.calories / userGoals.calories) * 100);
+    const proteinPercent = Math.round((todayData.protein / userGoals.protein) * 100);
+    
+    if (nutritionPercent < 80) {
+        recommendations.push({
+            title: 'Мало калорий',
+            description: `Съели ${nutritionPercent}% от дневной нормы. Добавьте питательный приём пищи.`,
+            type: 'nutrition',
+            progress: nutritionPercent,
+            priority: nutritionPercent < 50 ? 'high' : 'medium'
+        });
+    } else if (nutritionPercent > 120) {
+        recommendations.push({
+            title: 'Превышена норма калорий',
+            description: `Съели ${nutritionPercent}% от дневной нормы. Следующий приём пищи - лёгкий.`,
+            type: 'nutrition',
+            progress: Math.min(nutritionPercent, 100),
+            priority: 'high'
+        });
+    } else {
+        recommendations.push({
+            title: 'Калории в норме',
+            description: `Отлично! ${nutritionPercent}% от дневной нормы.`,
+            type: 'nutrition',
+            progress: nutritionPercent,
+            priority: 'low'
+        });
+    }
+    
+    if (proteinPercent < 60) {
+        recommendations.push({
+            title: 'Мало белка',
+            description: `Белок ${proteinPercent}% от нормы. Добавьте мясо, рыбу или творог.`,
+            type: 'nutrition',
+            progress: proteinPercent,
+            priority: 'medium'
+        });
+    }
+    
+    // === ПО ВОДЕ ===
+    const waterPercent = Math.round((waterIntake / userGoals.water) * 100);
+    
+    if (waterPercent < 50) {
+        recommendations.push({
+            title: 'Пейте больше воды',
+            description: `Выпито ${waterPercent}% от нормы. Выпейте стакан сейчас!`,
+            type: 'water',
+            progress: waterPercent,
+            priority: 'high'
+        });
+    } else if (waterPercent < 80) {
+        recommendations.push({
+            title: 'Воды достаточно',
+            description: `Выпито ${waterPercent}% от дневной нормы. Ещё немного!`,
+            type: 'water',
+            progress: waterPercent,
+            priority: 'medium'
+        });
+    } else {
+        recommendations.push({
+            title: 'Водный баланс в норме',
+            description: `Отлично! ${waterPercent}% воды выпито.`,
+            type: 'water',
+            progress: waterPercent,
+            priority: 'low'
+        });
+    }
+    
+    // === ПО АКТИВНОСТИ ===
+    const todayKey = getDateKey(new Date());
+    const todayActivityCalories = activityHistory
+        .filter(a => a.date === todayKey)
+        .reduce((sum, a) => sum + (a.calories || 0), 0);
+    const activityPercent = Math.round((todayActivityCalories / 300) * 100); // Цель - 300 ккал сожжено
+    
+    if (activityPercent < 30) {
+        recommendations.push({
+            title: 'Мало активности',
+            description: `Сожжено ${todayActivityCalories} ккал. Прогуляйтесь или сделайте разминку.`,
+            type: 'activity',
+            progress: activityPercent,
+            priority: 'high'
+        });
+    } else if (activityPercent < 70) {
+        recommendations.push({
+            title: 'Достаточно активности',
+            description: `Хорошая работа! ${todayActivityCalories} ккал сожжено.`,
+            type: 'activity',
+            progress: activityPercent,
+            priority: 'medium'
+        });
+    } else {
+        recommendations.push({
+            title: 'Отличная активность!',
+            description: `Сожжено ${todayActivityCalories} ккал. Цель достигнута!`,
+            type: 'activity',
+            progress: activityPercent,
+            priority: 'low'
+        });
+    }
+    
+    // === ПО ВЕСУ (если есть история) ===
+    if (weightHistory.length > 1) {
+        const currentWeight = weightHistory[weightHistory.length - 1].weight;
+        const firstWeight = weightHistory[0].weight;
+        const weightDiff = currentWeight - firstWeight;
+        
+        if (weightDiff > 1) {
+            recommendations.push({
+                title: 'Набор веса',
+                description: `+${weightDiff.toFixed(1)} кг с начала отслеживания. Пересмотрите рацион.`,
+                type: 'weight',
+                progress: 50,
+                priority: 'high'
+            });
+        } else if (weightDiff < -1) {
+            recommendations.push({
+                title: 'Потеря веса',
+                description: `-${Math.abs(weightDiff).toFixed(1)} кг - отличный результат!`,
+                type: 'weight',
+                progress: 80,
+                priority: 'low'
+            });
+        }
+    }
+    
+    renderRecommendations(recommendations);
 }
 
 function renderRecommendations(recs) {
-    const icons = { nutrition: 'Питание', water: 'Вода', activity: 'Активность', progress: 'Прогресс' };
+    const container = document.getElementById('recommendationsList');
+    if (!container) return;
     
-    document.getElementById('recommendationsList').innerHTML = recs.map(r => `
+    const typeIcons = {
+        nutrition: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>',
+        water: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg>',
+        activity: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+        weight: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>'
+    };
+    
+    const typeTitles = {
+        nutrition: 'ПИТАНИЮ',
+        water: 'ВОДНОМУ БАЛАНСУ',
+        activity: 'АКТИВНОСТИ',
+        weight: 'ВЕСУ'
+    };
+    
+    container.innerHTML = recs.map(r => `
         <div class="recommendation-card ${r.priority}">
-            <div class="recommendation-icon">
-                ${icons[r.type] || 'Рекомендация'}
+            <div class="recommendation-header">
+                <span class="recommendation-icon">${typeIcons[r.type] || ''}</span>
+                <span class="recommendation-type">по ${typeTitles[r.type] || ''}</span>
             </div>
             <div class="recommendation-content">
                 <h4>${r.title}</h4>
                 <p>${r.description}</p>
+                <div class="recommendation-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill ${r.priority}" style="width: ${Math.min(r.progress, 100)}%"></div>
+                    </div>
+                    <span class="progress-text">${r.progress}%</span>
+                </div>
             </div>
         </div>
     `).join('');
@@ -2851,6 +3028,7 @@ let reminders = [];
 let editingReminderIndex = -1;
 let notificationPermission = false;
 let lastNotificationTime = '';
+let lastIntervalReminder = '';
 
 function loadReminders() {
     const saved = localStorage.getItem('reminders');
@@ -2858,117 +3036,33 @@ function loadReminders() {
         reminders = JSON.parse(saved);
     } else {
         reminders = [
-            { time: '08:00', type: 'Завтрак', active: true },
-            { time: '13:00', type: 'Обед', active: true },
-            { time: '19:00', type: 'Ужин', active: true },
-            { time: 'Каждые 2ч', type: 'Вода', active: true }
+            { repeatType: 'daily', time: '08:00', type: 'Завтрак', active: true },
+            { repeatType: 'daily', time: '13:00', type: 'Обед', active: true },
+            { repeatType: 'daily', time: '19:00', type: 'Ужин', active: true }
         ];
     }
     renderReminders();
     initNotifications();
 }
 
-function initNotifications() {
-    if ('Notification' in window) {
-        if (Notification.permission === 'granted') {
-            notificationPermission = true;
-            startReminderChecker();
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(permission => {
-                notificationPermission = permission === 'granted';
-                if (notificationPermission) {
-                    startReminderChecker();
-                }
-            });
-        }
-    }
-}
-
-function startReminderChecker() {
-    setInterval(checkReminders, 60000); // Check every minute
-    checkReminders(); // Also check immediately
-}
-
-function checkReminders() {
-    if (!notificationPermission) return;
-    
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
-    const currentDate = now.toDateString();
-    const notificationKey = currentDate + '-' + currentTime;
-    
-    if (notificationKey === lastNotificationTime) return;
-    
-    reminders.forEach(r => {
-        if (!r.active) return;
-        
-        if (r.time === currentTime) {
-            lastNotificationTime = notificationKey;
-            showNotification(r.type);
-        }
-    });
-}
-
-function showNotification(type) {
-    if (!notificationPermission) return;
-    
-    const notification = new Notification('FoodTracker - Напоминание', {
-        body: `${type}!`,
-        icon: 'favicon.svg',
-        tag: 'reminder'
-    });
-    
-    notification.onclick = function() {
-        window.focus();
-        this.close();
-    };
-}
-
-function renderReminders() {
-    const grid = document.getElementById('remindersGrid');
-    if (!grid) return;
-    
-    grid.innerHTML = reminders.map((r, i) => `
-        <div class="reminder-card">
-            <div class="reminder-info">
-                <div class="reminder-time">${r.time}</div>
-                <div>
-                    <div class="reminder-type">${r.type}</div>
-                    <div class="reminder-subtitle">${r.time.includes('Каждые') ? 'Напоминание' : 'Ежедневно'}</div>
-                </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <label class="toggle-switch">
-                    <input type="checkbox" ${r.active ? 'checked' : ''} onchange="toggleReminder(${i})">
-                    <span class="toggle-slider"></span>
-                </label>
-                <button onclick="editReminder(${i})" style="background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                </button>
-                <button onclick="deleteReminder(${i})" style="background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; transition:background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function toggleReminder(index) {
-    reminders[index].active = !reminders[index].active;
-    saveReminders();
+function toggleReminderFields() {
+    const repeatType = document.getElementById('reminderRepeatType').value;
+    document.getElementById('timeField').style.display = (repeatType === 'once' || repeatType === 'daily' || repeatType === 'weekly') ? 'block' : 'none';
+    document.getElementById('intervalField').style.display = repeatType === 'interval' ? 'block' : 'none';
+    document.getElementById('weeklyField').style.display = repeatType === 'weekly' ? 'block' : 'none';
 }
 
 function openReminderModal() {
     editingReminderIndex = -1;
     document.getElementById('reminderModalTitle').textContent = 'Добавить напоминание';
+    document.getElementById('reminderRepeatType').value = 'daily';
     document.getElementById('reminderTime').value = '';
-    document.getElementById('reminderType').value = 'Завтрак';
+    document.getElementById('reminderIntervalValue').value = '';
+    document.getElementById('reminderIntervalUnit').value = 'hours';
+    document.getElementById('reminderWeeklyTime').value = '';
+    document.querySelectorAll('.reminderWeekday').forEach(cb => cb.checked = false);
+    document.getElementById('reminderCustomType').value = '';
+    toggleReminderFields();
     
     const modal = document.getElementById('reminderModal');
     modal.style.display = 'block';
@@ -2987,20 +3081,34 @@ function openReminderModal() {
         content.style.left = '50%';
         content.style.transform = 'translate(-50%, -50%)';
     }
+    
+    document.getElementById('sidebar').style.pointerEvents = 'none';
+    document.getElementById('sidebar').style.opacity = '0.5';
 }
 
 function closeReminderModal() {
     const modal = document.getElementById('reminderModal');
     modal.style.display = 'none';
     editingReminderIndex = -1;
+    
+    document.getElementById('sidebar').style.pointerEvents = 'auto';
+    document.getElementById('sidebar').style.opacity = '1';
 }
 
 function editReminder(index) {
     editingReminderIndex = index;
     const r = reminders[index];
     document.getElementById('reminderModalTitle').textContent = 'Редактировать напоминание';
-    document.getElementById('reminderTime').value = r.time;
-    document.getElementById('reminderType').value = r.type;
+    document.getElementById('reminderRepeatType').value = r.repeatType || 'daily';
+    document.getElementById('reminderTime').value = r.time || '';
+    document.getElementById('reminderIntervalValue').value = r.intervalValue || '';
+    document.getElementById('reminderIntervalUnit').value = r.intervalUnit || 'hours';
+    document.getElementById('reminderWeeklyTime').value = r.weeklyTime || '';
+    document.querySelectorAll('.reminderWeekday').forEach(cb => {
+        cb.checked = (r.weekdays || []).includes(parseInt(cb.value));
+    });
+    document.getElementById('reminderCustomType').value = r.type || '';
+    toggleReminderFields();
     
     const modal = document.getElementById('reminderModal');
     modal.style.display = 'block';
@@ -3030,18 +3138,50 @@ function deleteReminder(index) {
 }
 
 function saveReminder() {
+    const repeatType = document.getElementById('reminderRepeatType').value;
     const time = document.getElementById('reminderTime').value;
-    const type = document.getElementById('reminderType').value;
+    const intervalValue = parseInt(document.getElementById('reminderIntervalValue').value) || 1;
+    const intervalUnit = document.getElementById('reminderIntervalUnit').value;
+    const weeklyTime = document.getElementById('reminderWeeklyTime').value;
+    const weekdays = Array.from(document.querySelectorAll('.reminderWeekday:checked')).map(cb => parseInt(cb.value));
+    const type = document.getElementById('reminderCustomType').value;
     
-    if (!time) {
+    if (!type) {
+        showToast('Введите текст напоминания!');
+        return;
+    }
+    
+    let reminder = {
+        repeatType,
+        type,
+        active: true
+    };
+    
+    if (repeatType === 'once' && !time) {
         showToast('Выберите время!');
         return;
     }
     
+    if (repeatType === 'daily') {
+        reminder.time = time;
+    } else if (repeatType === 'once') {
+        reminder.time = time;
+    } else if (repeatType === 'interval') {
+        reminder.intervalValue = intervalValue;
+        reminder.intervalUnit = intervalUnit;
+    } else if (repeatType === 'weekly') {
+        if (weekdays.length === 0) {
+            showToast('Выберите дни недели!');
+            return;
+        }
+        reminder.weekdays = weekdays;
+        reminder.time = weeklyTime;
+    }
+    
     if (editingReminderIndex >= 0) {
-        reminders[editingReminderIndex] = { time, type, active: true };
+        reminders[editingReminderIndex] = reminder;
     } else {
-        reminders.push({ time, type, active: true });
+        reminders.push(reminder);
     }
     
     saveReminders();
@@ -3052,6 +3192,283 @@ function saveReminder() {
 
 function saveReminders() {
     localStorage.setItem('reminders', JSON.stringify(reminders));
+}
+
+function renderReminders() {
+    const grid = document.getElementById('remindersGrid');
+    if (!grid) return;
+    
+    const typeIcons = {
+        'Завтрак': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>',
+        'Обед': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V2M2 14h8c1.1 0 2 .9 2 2v7c0 1.1-.9 2-2 2"/></svg>',
+        'Ужин': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/></svg>',
+        'Перекус': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M20 21c0-4.4-3.6-8-8-8-4.4 0-8 3.6-8 8"/><path d="M12 13l4-4"/><path d="M12 13l-4-4"/></svg>',
+        'Вода': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg>',
+        'Тренировка': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+        'Дневник': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+        'default': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
+    };
+    
+    const typeClasses = {
+        'завтрак': 'breakfast',
+        'обед': 'lunch',
+        'ужин': 'dinner',
+        'перекус': 'snack',
+        'вода': 'water',
+        'тренир': 'activity',
+        'дневник': 'diary'
+    };
+    
+    function getIconForType(type) {
+        const lower = type.toLowerCase();
+        for (const [key, icon] of Object.entries(typeIcons)) {
+            if (lower.includes(key.toLowerCase())) return icon;
+        }
+        return typeIcons['default'];
+    }
+    
+    function getClassForType(type) {
+        const lower = type.toLowerCase();
+        for (const [key, cls] of Object.entries(typeClasses)) {
+            if (lower.includes(key)) return cls;
+        }
+        return 'default';
+    }
+    
+    if (reminders.length === 0) {
+        grid.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-muted); font-size:14px;">Нет напоминаний. Добавьте первое!</div>';
+        return;
+    }
+    
+    grid.innerHTML = reminders.map((r, i) => {
+        const icon = getIconForType(r.type);
+        const typeClass = getClassForType(r.type);
+        
+        let timeDisplay = '';
+        let repeatText = '';
+        
+        if (r.repeatType === 'once') {
+            timeDisplay = r.time;
+            repeatText = 'Один раз';
+        } else if (r.repeatType === 'daily') {
+            timeDisplay = r.time;
+            repeatText = 'каждый день';
+        } else if (r.repeatType === 'interval') {
+            timeDisplay = `Через ${r.intervalValue} ${r.intervalUnit === 'hours' ? 'ч' : 'мин'}`;
+            repeatText = 'Интервал';
+        } else if (r.repeatType === 'weekly') {
+            timeDisplay = r.time;
+            const dayNames = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            repeatText = (r.weekdays || []).map(d => dayNames[d]).join(' / ');
+        }
+        
+        return `
+        <div class="reminder-row">
+            <div class="reminder-icon-wrap ${typeClass}">${icon}</div>
+            <div class="reminder-content">
+                <div class="reminder-top">
+                    <span class="reminder-time">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v6l4 2"/>
+                        </svg>
+                        ${timeDisplay}
+                    </span>
+                    <span class="reminder-type-label">${r.type}</span>
+                </div>
+                <div class="reminder-repeat">${repeatText}</div>
+                <div class="reminder-custom-text">"${r.customText || r.type}"</div>
+            </div>
+            <div class="reminder-actions">
+                <label class="reminder-switch">
+                    <input type="checkbox" ${r.active ? 'checked' : ''} onchange="toggleReminder(${i})">
+                    <span class="reminder-switch-slider"></span>
+                </label>
+                <button class="reminder-action-btn" onclick="editReminder(${i})" title="Редактировать">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button class="reminder-action-btn reminder-delete-btn" onclick="deleteReminder(${i})" title="Удалить">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `}).join('');
+}
+
+function toggleReminder(index) {
+    reminders[index].active = !reminders[index].active;
+    saveReminders();
+    renderReminders();
+}
+
+function editReminder(index) {
+    const r = reminders[index];
+    if (!r) return;
+    
+    editingReminderIndex = index;
+    document.getElementById('reminderModalTitle').textContent = 'Редактировать напоминание';
+    document.getElementById('reminderRepeatType').value = r.repeatType || 'daily';
+    document.getElementById('reminderTime').value = r.time || '';
+    document.getElementById('reminderIntervalValue').value = r.intervalValue || 1;
+    document.getElementById('reminderIntervalUnit').value = r.intervalUnit || 'hours';
+    document.getElementById('reminderWeeklyTime').value = r.time || '';
+    document.querySelectorAll('.reminderWeekday').forEach(cb => {
+        cb.checked = (r.weekdays || []).includes(parseInt(cb.value));
+    });
+    document.getElementById('reminderCustomType').value = r.customText || r.type || '';
+    toggleReminderFields();
+    
+    const modal = document.getElementById('reminderModal');
+    modal.style.display = 'block';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.background = 'rgba(0,0,0,0.5)';
+    modal.style.zIndex = '99999';
+    
+    const content = modal.querySelector('div[style*="position:fixed"]');
+    if (content) {
+        content.style.position = 'fixed';
+        content.style.top = '50%';
+        content.style.left = '50%';
+        content.style.transform = 'translate(-50%, -50%)';
+    }
+}
+
+function deleteReminder(index) {
+    if (confirm('Удалить напоминание?')) {
+        reminders.splice(index, 1);
+        saveReminders();
+        renderReminders();
+    }
+}
+
+function toggleReminderFields() {
+    const repeatType = document.getElementById('reminderRepeatType').value;
+    document.getElementById('timeField').style.display = (repeatType === 'once' || repeatType === 'daily') ? 'block' : 'none';
+    document.getElementById('intervalField').style.display = repeatType === 'interval' ? 'block' : 'none';
+    document.getElementById('weeklyField').style.display = repeatType === 'weekly' ? 'block' : 'none';
+}
+
+function initNotifications() {
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            notificationPermission = true;
+            startReminderChecker();
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                notificationPermission = permission === 'granted';
+                if (notificationPermission) {
+                    startReminderChecker();
+                }
+            });
+        }
+    }
+}
+
+function startReminderChecker() {
+    setInterval(checkReminders, 10000);
+    checkReminders();
+}
+
+function checkReminders() {
+    if (!notificationPermission) return;
+    
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    const currentDate = now.toDateString();
+    const currentWeekday = now.getDay();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const totalMinutes = currentHours * 60 + currentMinutes;
+    const notificationKey = currentDate + '-' + currentTime;
+    
+    // Use a key that includes the specific reminder to avoid duplicate notifications
+    const processedKey = localStorage.getItem('lastNotificationKey') || '';
+    
+    reminders.forEach((r, idx) => {
+        if (!r.active) return;
+        
+        let shouldNotify = false;
+        
+        // Get the last triggered time for this specific reminder
+        const lastTriggered = parseInt(localStorage.getItem('reminder_last_' + idx) || '0');
+        
+        if (r.repeatType === 'once') {
+            // Fire once at the specified time
+            if (r.time === currentTime && processedKey !== notificationKey) {
+                shouldNotify = true;
+                // Mark as triggered so it won't fire again today
+                localStorage.setItem('reminder_last_' + idx, totalMinutes.toString());
+                localStorage.setItem('reminder_done_' + idx + '_' + currentDate, 'true');
+            }
+        } else if (r.repeatType === 'daily') {
+            // Fire daily at the specified time
+            if (r.time === currentTime && lastTriggered !== totalMinutes) {
+                shouldNotify = true;
+                localStorage.setItem('reminder_last_' + idx, totalMinutes.toString());
+            }
+        } else if (r.repeatType === 'weekly') {
+            // Fire on selected weekdays at specified time
+            if ((r.weekdays || []).includes(currentWeekday) && r.time === currentTime && lastTriggered !== totalMinutes) {
+                shouldNotify = true;
+                localStorage.setItem('reminder_last_' + idx, totalMinutes.toString());
+            }
+        } else if (r.repeatType === 'interval') {
+            // Fire every N minutes/hours
+            const intervalMinutes = r.intervalUnit === 'hours' ? (r.intervalValue || 1) * 60 : (r.intervalValue || 1);
+            const timeSinceLast = totalMinutes - lastTriggered;
+            
+            if (lastTriggered === 0 || timeSinceLast >= intervalMinutes) {
+                shouldNotify = true;
+                localStorage.setItem('reminder_last_' + idx, totalMinutes.toString());
+            }
+        }
+        
+        if (shouldNotify) {
+            // Mark this time as processed
+            localStorage.setItem('lastNotificationKey', notificationKey);
+            
+            // Create detailed notification text
+            let timeText = '';
+            if (r.repeatType === 'once') timeText = ' (однократно)';
+            else if (r.repeatType === 'daily') timeText = ' (ежедневно)';
+            else if (r.repeatType === 'weekly') {
+                const days = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+                timeText = ' (' + (r.weekdays || []).map(d => days[d]).join(',') + ')';
+            }
+            else if (r.repeatType === 'interval') timeText = ' (каждые ' + r.intervalValue + ' ' + (r.intervalUnit === 'hours' ? 'ч' : 'мин') + ')';
+            
+            showNotification(r.type + timeText);
+        }
+    });
+    
+    // Save current time as last processed to prevent duplicate minutely checks
+    if (processedKey !== notificationKey) {
+        localStorage.setItem('lastNotificationKey', notificationKey);
+    }
+}
+
+function showNotification(text) {
+    if (!notificationPermission) return;
+    
+    const notification = new Notification('FoodTracker', {
+        body: text,
+        icon: 'favicon.svg',
+        tag: 'reminder'
+    });
+    
+    notification.onclick = function() {
+        window.focus();
+        this.close();
+    };
 }
 
 function showToast(message, type = 'success') {
